@@ -8,7 +8,6 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
-import "./GoldenCatLootBox.sol";
 
 // preparation tasks
 // 1. admin open the pool
@@ -39,8 +38,6 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
         uint256 rewardsAmountWithdrawable;
         // reward amount paid (also used to jot the past reward skipped)
         uint256 rewardsAmountPerStakingTokenPaid;
-        // reward start counting block
-        uint256 lootBoxStakingStartBlock;
     }
 
     struct Pool {
@@ -50,8 +47,6 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
         IERC20Upgradeable rewardsToken;
         // reward token distributor
         address rewardsDistributor;
-        // loot box contract
-        GoldenCatLootBox goldenCatLootBox;
         // total staking amount
         uint256 stakingAmount;
         // total reward amount available
@@ -73,22 +68,6 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
         uint256 rewardsLastCalculationBlock;
         // pool user mapping;
         mapping(address => PoolUser) users;
-        // loot box configuration mapping;
-        // pool id => pool loot box configuration struct
-        // *** rule: higher the config id => higher the staking amount
-        mapping(uint256 => PoolLootBoxConfiguration) lootBoxConfigurations;
-        // loot box configuration counter;
-        CountersUpgradeable.Counter lootBoxConfigurationIdTracker; // starts from 0
-    }
-
-    // To support the structure of multiple loot box giveaway
-    // eg. deposit more can get 1 loot box in a short time
-    struct PoolLootBoxConfiguration {
-        bool enabled;
-        // rewards amount needed for loot box
-        uint256 stakingAmountRequired;
-        // rewards block needed for loot box
-        uint256 stakingBlockCountRequired;
     }
 
     mapping(uint256 => Pool) public pools;
@@ -107,18 +86,14 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
     function createPool(
         IERC20Upgradeable _stakingToken,
         IERC20Upgradeable _rewardsToken,
-        address _rewardsDistributor,
-        GoldenCatLootBox _goldenCatLootBox
+        address _rewardsDistributor
     ) public onlyOwner {
         Pool storage pool = pools[poolIdTracker.current()];
         pool.stakingToken = _stakingToken;
         pool.rewardsToken = _rewardsToken;
         pool.rewardsDistributor = _rewardsDistributor;
-        pool.goldenCatLootBox = _goldenCatLootBox;
         // to indicate the pool is activated
         pool.rewardsLastCalculationBlock = block.number;
-        // pool.lootBoxStakingAmountRequired = type(uint256).max;
-        // pool.lootBoxStakingBlockCountRequired = 0;
         emit PoolCreated(
             poolIdTracker.current(),
             address(_stakingToken),
@@ -126,152 +101,6 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
             _rewardsDistributor
         );
         poolIdTracker.increment();
-    }
-
-    function createPoolLootBoxConfiguration(
-        uint256 _poolId,
-        bool _enabled,
-        uint256 _stakingAmountRequired,
-        uint256 _stakingBlockCountRequired
-    ) external onlyOwner poolExists(_poolId) {
-        require(_stakingAmountRequired != 0, "Invalid Stake Amount Required.");
-        require(
-            _stakingBlockCountRequired != 0,
-            "Invalid Stake Block Count Required."
-        );
-        Pool storage pool = pools[_poolId];
-        // make sure the current config staking amount is larger than all existing ones
-        if (pool.lootBoxConfigurationIdTracker.current() > 0) {
-            uint256 i = pool.lootBoxConfigurationIdTracker.current().sub(1);
-            while (i >= 0) {
-                PoolLootBoxConfiguration
-                    storage existingPoolLootBoxConfiguration = pool
-                        .lootBoxConfigurations[i];
-                if (existingPoolLootBoxConfiguration.enabled) {
-                    require(
-                        _stakingAmountRequired >
-                            existingPoolLootBoxConfiguration
-                                .stakingAmountRequired,
-                        "Stake Amount Less Than Existing Config."
-                    );
-                    require(
-                        _stakingBlockCountRequired <
-                            existingPoolLootBoxConfiguration
-                                .stakingBlockCountRequired,
-                        "Block count higher than lower ID config."
-                    );
-                }
-                if (i == 0) {
-                    break;
-                } else {
-                    i--;
-                }
-            }
-        }
-        // update value
-        PoolLootBoxConfiguration storage poolLootBoxConfiguration = pool
-            .lootBoxConfigurations[
-                pool.lootBoxConfigurationIdTracker.current()
-            ];
-        poolLootBoxConfiguration.enabled = _enabled;
-        poolLootBoxConfiguration.stakingAmountRequired = _stakingAmountRequired;
-        poolLootBoxConfiguration
-            .stakingBlockCountRequired = _stakingBlockCountRequired;
-        pool.lootBoxConfigurationIdTracker.increment();
-        emit PoolLootBoxConfigurationCreated(
-            _poolId,
-            pool.lootBoxConfigurationIdTracker.current().sub(1),
-            _enabled,
-            _stakingAmountRequired,
-            _stakingBlockCountRequired
-        );
-    }
-
-    function updatePoolLootBoxConfiguration(
-        uint256 _poolId,
-        uint256 _poolLootBoxConfigurationId,
-        bool _enabled,
-        uint256 _stakingAmountRequired,
-        uint256 _stakingBlockCountRequired
-    ) external onlyOwner poolExists(_poolId) {
-        require(_stakingAmountRequired != 0, "Invalid Stake Amount Required.");
-        require(
-            _stakingBlockCountRequired != 0,
-            "Invalid Stake Block Count Required."
-        );
-        Pool storage pool = pools[_poolId];
-        require(
-            _poolLootBoxConfigurationId <
-                pool.lootBoxConfigurationIdTracker.current(),
-            "Configuration Not Created"
-        );
-        // make sure the current config staking amount is larger than all existing ones
-        if (_poolLootBoxConfigurationId > 0) {
-            uint256 i = _poolLootBoxConfigurationId.sub(1);
-            while (i >= 0) {
-                PoolLootBoxConfiguration
-                    storage existingPoolLootBoxConfiguration = pool
-                        .lootBoxConfigurations[i];
-                if (existingPoolLootBoxConfiguration.enabled) {
-                    require(
-                        _stakingAmountRequired >
-                            existingPoolLootBoxConfiguration
-                                .stakingAmountRequired,
-                        "Stake amount less than lower ID config."
-                    );
-                    require(
-                        _stakingBlockCountRequired <
-                            existingPoolLootBoxConfiguration
-                                .stakingBlockCountRequired,
-                        "Block count higher than lower ID config."
-                    );
-                    break;
-                }
-                if (i == 0) {
-                    break;
-                } else {
-                    i--;
-                }
-            }
-        }
-        // make sure the current config staking amount is smaller than higher ids
-        for (
-            uint256 i = _poolLootBoxConfigurationId.add(1);
-            i < pool.lootBoxConfigurationIdTracker.current();
-            i++
-        ) {
-            PoolLootBoxConfiguration
-                storage existingPoolLootBoxConfiguration = pool
-                    .lootBoxConfigurations[i];
-            if (existingPoolLootBoxConfiguration.enabled) {
-                require(
-                    _stakingAmountRequired <
-                        existingPoolLootBoxConfiguration.stakingAmountRequired,
-                    "Stake amount higher than higher ID config."
-                );
-                require(
-                    _stakingBlockCountRequired >
-                        existingPoolLootBoxConfiguration
-                            .stakingBlockCountRequired,
-                    "Block count lower than higher ID config."
-                );
-                break;
-            }
-        }
-        // update value
-        PoolLootBoxConfiguration storage poolLootBoxConfiguration = pool
-            .lootBoxConfigurations[_poolLootBoxConfigurationId];
-        poolLootBoxConfiguration.enabled = _enabled;
-        poolLootBoxConfiguration.stakingAmountRequired = _stakingAmountRequired;
-        poolLootBoxConfiguration
-            .stakingBlockCountRequired = _stakingBlockCountRequired;
-        emit PoolLootBoxConfigurationUpdated(
-            _poolId,
-            _poolLootBoxConfigurationId,
-            _enabled,
-            _stakingAmountRequired,
-            _stakingBlockCountRequired
-        );
     }
 
     // admin step 5: set duration
@@ -373,23 +202,6 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
     {
         Pool storage pool = pools[_poolId];
         PoolUser storage poolUser = pool.users[_sender];
-        PoolLootBoxConfiguration
-            memory poolLootBoxConfiguration = getPoolUserLootBoxConfiguration(
-                _poolId,
-                poolUser.stakingAmount.add(_amount)
-            );
-        if (poolLootBoxConfiguration.enabled) {
-            // update the user count when he reaches the required amount for configuration
-            if (
-                poolUser.stakingAmount <
-                poolLootBoxConfiguration.stakingAmountRequired
-            ) {
-                poolUser.lootBoxStakingStartBlock = block.number;
-            }
-        } else {
-            // no fitting configuration
-            poolUser.lootBoxStakingStartBlock = 0;
-        }
         pool.stakingAmount = pool.stakingAmount.add(_amount);
         poolUser.stakingAmount = poolUser.stakingAmount.add(_amount);
         emit PoolUserStaked(_poolId, _sender, _amount);
@@ -406,7 +218,6 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
 
         updatePoolRewardInfo(_poolId, _sender);
         _claimReward(_poolId, _sender);
-        _claimLootBox(_poolId, _sender);
         _withdrawOnly(_poolId, _sender, _amount);
     }
 
@@ -415,15 +226,6 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
         PoolUser storage poolUser = pool.users[_sender];
         pool.stakingAmount = pool.stakingAmount.sub(_amount);
         poolUser.stakingAmount = poolUser.stakingAmount.sub(_amount);
-        // update with new staking amount
-        PoolLootBoxConfiguration memory plbCfg = getPoolUserLootBoxConfiguration(
-            _poolId,
-            poolUser.stakingAmount
-        );
-        if (!plbCfg.enabled) {
-            // no fitting configuration
-            poolUser.lootBoxStakingStartBlock = 0;
-        }
         emit PoolUserWithdrawn(_poolId, _sender, _amount);
     }
 
@@ -437,52 +239,12 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
         // handle sender state change
         updatePoolRewardInfo(_poolId, _sender);
         _claimReward(_poolId, _sender);
-        _claimLootBox(_poolId, _sender);
         _withdrawOnly(_poolId, _sender, _amount);
 
         // handle receiver state change, update recerver's state and claim reward for early staking
         updatePoolRewardInfo(_poolId, _receiver);
         // then stake and add _amount with early staking
         _stakeOnly(_poolId, _receiver, _amount);
-    }
-
-    function claimLootBox(uint256 _poolId)
-        external
-        nonReentrant
-        poolExists(_poolId)
-    {
-        require(isLootBoxClaimable(_poolId, msg.sender), "Can not claim");
-        updatePoolRewardInfo(_poolId, msg.sender);
-        _claimLootBox(_poolId, msg.sender);
-    }
-
-    // claim loot box private
-    function _claimLootBox(uint256 _poolId, address _sender) private poolExists(_poolId) {
-        Pool storage pool = pools[_poolId];
-        PoolUser storage poolUser = pool.users[_sender];
-        if (isLootBoxClaimable(_poolId, _sender)) {
-            uint256 lootBoxClaimableCount = getLootBoxClaimableCount(
-                _poolId,
-                _sender
-            );
-            for (uint256 i = 0; i < lootBoxClaimableCount; i++) {
-                pool.goldenCatLootBox.mint(
-                    _sender,
-                    address(pool.stakingToken)
-                );
-            }
-            poolUser.lootBoxStakingStartBlock = block.number;
-            emit PoolUserLootBoxClaimed(_poolId, _sender);
-        }
-        PoolLootBoxConfiguration
-            memory poolLootBoxConfiguration = getPoolUserLootBoxConfiguration(
-                _poolId,
-                poolUser.stakingAmount
-            );
-        if (!poolLootBoxConfiguration.enabled) {
-            // no fitting configuration
-            poolUser.lootBoxStakingStartBlock = 0;
-        }
     }
 
     // user claimReward
@@ -571,113 +333,6 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
 
     /* ========== VIEW METHODS ========== */
 
-    function getPoolUserLootBoxConfiguration(
-        uint256 _poolId,
-        uint256 _stakingAmount
-    ) public view returns (PoolLootBoxConfiguration memory configuration) {
-        Pool storage pool = pools[_poolId];
-        if (pool.lootBoxConfigurationIdTracker.current() > 0) {
-            uint256 i = pool.lootBoxConfigurationIdTracker.current().sub(1);
-            while (i >= 0) {
-                PoolLootBoxConfiguration storage poolLootBoxConfiguration = pool
-                    .lootBoxConfigurations[i];
-                if (
-                    poolLootBoxConfiguration.enabled &&
-                    _stakingAmount >=
-                    poolLootBoxConfiguration.stakingAmountRequired
-                ) {
-                    return poolLootBoxConfiguration;
-                }
-                if (i == 0) {
-                    break;
-                } else {
-                    i--;
-                }
-            }
-        }
-        return PoolLootBoxConfiguration(false, 0, 0);
-    }
-
-    function isLootBoxStaking(uint256 _poolId, address _user)
-        public
-        view
-        returns (bool)
-    {
-        Pool storage pool = pools[_poolId];
-        PoolUser storage poolUser = pool.users[_user];
-        PoolLootBoxConfiguration
-            memory poolLootBoxConfiguration = getPoolUserLootBoxConfiguration(
-                _poolId,
-                poolUser.stakingAmount
-            );
-        return (poolLootBoxConfiguration.enabled &&
-            poolLootBoxConfiguration.stakingAmountRequired != 0 &&
-            poolLootBoxConfiguration.stakingBlockCountRequired != 0 &&
-            poolUser.lootBoxStakingStartBlock != 0);
-    }
-
-    function isLootBoxClaimable(uint256 _poolId, address _user)
-        public
-        view
-        returns (bool)
-    {
-        Pool storage pool = pools[_poolId];
-        PoolUser storage poolUser = pool.users[_user];
-        PoolLootBoxConfiguration
-            memory poolLootBoxConfiguration = getPoolUserLootBoxConfiguration(
-                _poolId,
-                poolUser.stakingAmount
-            );
-
-        return (isLootBoxStaking(_poolId, _user) &&
-            block.number.sub(poolUser.lootBoxStakingStartBlock) >=
-            poolLootBoxConfiguration.stakingBlockCountRequired);
-    }
-
-    function getLootBoxClaimableCount(uint256 _poolId, address _user)
-        public
-        view
-        returns (uint256)
-    {
-        if (!isLootBoxClaimable(_poolId, _user)) {
-            return 0;
-        }
-        Pool storage pool = pools[_poolId];
-        PoolUser storage poolUser = pool.users[_user];
-        PoolLootBoxConfiguration
-            memory poolLootBoxConfiguration = getPoolUserLootBoxConfiguration(
-                _poolId,
-                poolUser.stakingAmount
-            );
-
-        return
-            (block.number - poolUser.lootBoxStakingStartBlock) /
-            poolLootBoxConfiguration.stakingBlockCountRequired;
-    }
-
-    function getLootBoxStakingRemainingBlock(uint256 _poolId, address _user)
-        public
-        view
-        returns (uint256)
-    {
-        Pool storage pool = pools[_poolId];
-        PoolUser storage poolUser = pool.users[_user];
-        PoolLootBoxConfiguration
-            memory poolLootBoxConfiguration = getPoolUserLootBoxConfiguration(
-                _poolId,
-                poolUser.stakingAmount
-            );
-        if (isLootBoxStaking(_poolId, _user)) {
-            if (isLootBoxClaimable(_poolId, _user)) {
-                return 0;
-            }
-            return (poolUser.lootBoxStakingStartBlock +
-                poolLootBoxConfiguration.stakingBlockCountRequired -
-                block.number);
-        }
-        return type(uint256).max;
-    }
-
     // get updated reward per token
     // rewardsAccumulatedPerStakingToken + new changes from time = rewardsLastCalculationBlock
     function getUpdatedRewardPerStakingTokenAccumulated(uint256 _poolId)
@@ -745,15 +400,6 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
         user = pool.users[_userAddress];
     }
 
-    function getPoolLootBoxConfiguration(uint256 _poolId, uint256 _confId)
-        public
-        view
-        returns (PoolLootBoxConfiguration memory lootBoxConfiguration)
-    {
-        Pool storage pool = pools[_poolId];
-        return pool.lootBoxConfigurations[_confId];
-    }
-
     /* ========== MODIFIERS ========== */
 
     modifier poolExists(uint256 _poolId) {
@@ -776,20 +422,6 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
         address rewardToken,
         address rewardDistributor
     );
-    event PoolLootBoxConfigurationCreated(
-        uint256 poolId,
-        uint256 poolLootBoxConfigurationId,
-        bool enabled,
-        uint256 stakingAmountRequired,
-        uint256 stakingBlockCountRequired
-    );
-    event PoolLootBoxConfigurationUpdated(
-        uint256 poolId,
-        uint256 poolLootBoxConfigurationId,
-        bool enabled,
-        uint256 stakingAmountRequired,
-        uint256 stakingBlockCountRequired
-    );
     event PoolRewardsBlockCountSet(uint256 poolId, uint256 rewardsBlockCount);
     event PoolRewardsDistributorSet(uint256 poolId, address rewardsDistributor);
     event PoolRewardSupplied(uint256 poolId, uint256 rewardsTokenAmount);
@@ -806,7 +438,6 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
         uint256 amount
     );
 
-    event PoolUserLootBoxClaimed(uint256 poolId, address indexed user);
     event PoolUserRewardClaimed(
         uint256 poolId,
         address indexed user,
