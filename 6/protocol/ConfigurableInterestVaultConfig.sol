@@ -29,8 +29,6 @@ contract ConfigurableInterestVaultConfig is IVaultConfig, OwnableUpgradeSafe {
 
   mapping (address => address) public farms;
   mapping (address => uint256) public poolIds;
-  mapping (address => address) public oldFarms;
-  mapping (address => uint256) public oldPoolIds;
 
   function initialize(
     uint256 _minDebtSize,
@@ -77,18 +75,23 @@ contract ConfigurableInterestVaultConfig is IVaultConfig, OwnableUpgradeSafe {
   function setMinDebtSize(uint256 _minDebtSize) external onlyOwner {
     minDebtSize = _minDebtSize;
   }
+  
   function setReservePoolBps(uint256 _reservePoolBps) external onlyOwner {
     getReservePoolBps = _reservePoolBps;
   }
+
   function setKillBps(uint256 _killBps) external onlyOwner {
     getKillBps = _killBps;
   }
+
   function setInterestModel(InterestModel _interestModel) external onlyOwner {
     interestModel = _interestModel;
   }
+
   function setWrappedNative(address _wrappedNative) external onlyOwner {
     wrappedNative = _wrappedNative;
   }
+
   function setWNativeRelayer(address _wNativeRelayer) external onlyOwner {
     wNativeRelayer = _wNativeRelayer;
   }
@@ -140,15 +143,5 @@ contract ConfigurableInterestVaultConfig is IVaultConfig, OwnableUpgradeSafe {
   function getFarmConfig(address _vault) external override view returns(address farm, uint256 poolId) {
     farm = farms[_vault];
     poolId = poolIds[_vault];
-  }
-
-  function setOldFarmConfig(address _vault, uint256 _poolId, address _farm) external override onlyOwner {
-    oldFarms[_vault] = _farm;
-    oldPoolIds[_vault] = _poolId;
-  }
-
-  function getOldFarmConfig(address _vault) external override view returns(address farm, uint256 poolId) {
-    farm = oldFarms[_vault];
-    poolId = oldPoolIds[_vault];
   }
 }

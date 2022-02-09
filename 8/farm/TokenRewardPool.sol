@@ -77,9 +77,9 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
 
     // initialize
     function initialize() public initializer {
-        super.__Ownable_init();
-        super.__Pausable_init();
-        super.__ReentrancyGuard_init();
+        __Ownable_init();
+        __Pausable_init();
+        __ReentrancyGuard_init();
     }
 
     // admin step 1: createPool

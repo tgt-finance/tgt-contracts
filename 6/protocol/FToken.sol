@@ -13,9 +13,6 @@ import "./interfaces/lending/IERC20.sol";
 import "./interfaces/lending/IFToken.sol";
 import "./interfaces/IVaultConfig.sol";
 import "./interfaces/lending/IFlashLoanReceiver.sol";
-// import "./library/SafeMathLib.sol";
-
-import "hardhat/console.sol";
 
 struct PoolUser {
     // user staking amount
@@ -220,20 +217,6 @@ contract FToken is Exponential, OwnableUpgradeSafe {
     function transferFrom(address src, address dst, uint256 amount) external nonReentrant returns (bool) {
         // spender - src - dst
         transferTokens(msg.sender, src, dst, amount);
-
-        // TransferLogStruct memory tls = TransferLogStruct(
-        //     src,
-        //     underlying,
-        //     address(this),
-        //     amount,
-        //     balanceOf(src),
-        //     dst,
-        //     balanceOf(dst),
-        //     tokenCash(underlying, address(this))
-        // );
-
-        // emit MonitorEvent("TransferFrom", abi.encode(tls));
-
         return true;
     }
 
