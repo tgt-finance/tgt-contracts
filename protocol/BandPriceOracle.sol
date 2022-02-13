@@ -7,11 +7,11 @@ import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "./IPriceOracle.sol";
 import "./interfaces/IStdReference.sol";
 
-contract BandPriceOracle is IPriceOracle, OwnableUpgradeSafe {    
+contract BandPriceOracle is IPriceOracle, OwnableUpgradeSafe {
 
   IStdReference public ref;
   uint256 public price;
-  
+
   mapping(address => string) public tokensMap;
   address public baseToken;
 
@@ -31,32 +31,17 @@ contract BandPriceOracle is IPriceOracle, OwnableUpgradeSafe {
     baseToken = newBaseToken;
   }
 
-  function getPrice(address token0, address token1) public override view returns (uint256 price, uint256 lastUpdate) { 
+  function getPrice(address token0, address token1) public override view returns (uint256 price, uint256 lastUpdate) {
     string memory symbol0 = tokensMap[token0];
     string memory symbol1 = tokensMap[token1];
     require(bytes(symbol0).length != 0 && bytes(symbol1).length != 0, "token address is not set");
-    
-    IStdReference.ReferenceData memory data = ref.getReferenceData(symbol0, symbol1);       
+
+    IStdReference.ReferenceData memory data = ref.getReferenceData(symbol0, symbol1);
     return (data.rate, block.timestamp);
   }
 
   function get(address token) external override view returns (uint256, bool) {
     (uint256 price,) = getPrice(token, baseToken);
     return (price, true);
-  }
-
-  // TODO remove this funcion when release version
-  function getMultiPrices() external view returns (uint256[] memory) {
-    string[] memory baseSymbols = new string[](2);        
-    baseSymbols[0] = "BNB";        
-    baseSymbols[1] = "ETH";        
-    string[] memory quoteSymbols = new string[](2);        
-    quoteSymbols[0] = "USD";        
-    quoteSymbols[1] = "USD";        
-    IStdReference.ReferenceData[] memory data = ref.getReferenceDataBulk(baseSymbols, quoteSymbols);        
-    uint256[] memory prices = new uint256[](2);        
-    prices[0] = data[0].rate;        
-    prices[1] = data[1].rate;        
-    return prices;
   }
 }

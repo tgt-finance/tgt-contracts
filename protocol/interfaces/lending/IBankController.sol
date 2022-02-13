@@ -15,18 +15,6 @@ interface IBankController {
         view
         returns (address);
 
-    // function transferToUser(
-    //     address token,
-    //     address payable user,
-    //     uint256 amount
-    // ) external;
-
-    // function transferIn(
-    //     address account,
-    //     address underlying,
-    //     uint256 amount
-    // ) external payable;
-
     function borrowCheck(
         address account,
         address underlying,
@@ -40,7 +28,7 @@ interface IBankController {
         address fToken,
         uint256 borrowAmount
     ) external;
-    
+
     function repayCheck(address underlying) external;
 
     function liquidateBorrowCheck(
@@ -108,18 +96,9 @@ interface IBankController {
         view
         returns (uint256);
 
-    // function transferEthGasCost() external view returns (uint256);
-
     function isFTokenValid(address fToken) external view returns (bool);
-    // function balance(address token) external view returns (uint256);
     function flashloanFeeBips() external view returns (uint256);
     function flashloanVault() external view returns (address);
-    // function transferFlashloanAsset(
-    //     address token,
-    //     address payable user,
-    //     uint256 amount
-    // ) external;
-
     function paused() external view returns (bool);
     function transferEthGasCost() external view returns (uint);
     function getHealthFactor(address account) external view returns(uint);

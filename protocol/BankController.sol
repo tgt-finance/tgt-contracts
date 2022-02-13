@@ -11,9 +11,7 @@ import "./interfaces/lending/IERC20.sol";
 import "./library/SafeERC20.sol";
 import "./library/SafeMathLib.sol";
 import "./library/Address.sol";
-import "./interfaces/lending/IRewardPool.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
 
 contract BankController is Exponential, OwnableUpgradeSafe {
     using SafeERC20 for IERC20Interface;
@@ -727,8 +725,6 @@ contract BankController is Exponential, OwnableUpgradeSafe {
             borrower
         );
         uint256 maxClose = mulScalarTruncate(closeFactor, borrowBalance);
-        console.log("repayAmount: %s", repayAmount);
-        console.log("maxClose:    %s", maxClose);
         require(repayAmount <= maxClose, "Too much repay");
     }
 

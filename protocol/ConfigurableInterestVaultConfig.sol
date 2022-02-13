@@ -19,7 +19,7 @@ contract ConfigurableInterestVaultConfig is IVaultConfig, OwnableUpgradeSafe {
   mapping(address => IWorkerConfig) public workers;
   /// Interest rate model
   InterestModel public interestModel;
-  // address for wrapped native eg WBNB, WETH
+  // address for wrapped native token
   address public wrappedNative;
   // address for wNtive Relayer
   address public wNativeRelayer;
@@ -75,7 +75,7 @@ contract ConfigurableInterestVaultConfig is IVaultConfig, OwnableUpgradeSafe {
   function setMinDebtSize(uint256 _minDebtSize) external onlyOwner {
     minDebtSize = _minDebtSize;
   }
-  
+
   function setReservePoolBps(uint256 _reservePoolBps) external onlyOwner {
     getReservePoolBps = _reservePoolBps;
   }

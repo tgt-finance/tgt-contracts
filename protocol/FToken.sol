@@ -357,12 +357,6 @@ contract FToken is Exponential, OwnableUpgradeSafe {
             controller.getCashPrior(underlying) >= borrowAmount,
             "Insufficient balance"
         );
-        // This is for the same borrower, the original principal plus the interest plus the amount of money borrowed this time
-        // BorrowLocals memory tmp;
-        // uint256 lastPrincipal = accountBorrows[borrower].principal;
-        // tmp.accountBorrows = lastPrincipal;
-        // tmp.accountBorrowsNew = addExp(tmp.accountBorrows, borrowAmount);
-        // tmp.totalBorrowsNew = addExp(totalBorrows, borrowAmount);
 
         accountBorrows[borrower].principal = addExp(accountBorrows[borrower].principal, borrowAmount);
         accountBorrows[borrower].interestIndex = 1e18;
@@ -429,35 +423,6 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         }
     }
 
-    // function balanceOfUnderlying(address owner) external returns (uint256) {
-    //     uint256 exchangeRate = exchangeRateCurrent();
-    //     uint256 balance = mulScalarTruncate(exchangeRate, accountTokens[owner]);
-    //     return balance;
-    // }
-
-    // function calcBalanceOfUnderlying(address owner)
-    //     public
-    //     view
-    //     returns (uint256)
-    // {
-    //     (, , uint256 _totalBorrows, uint256 _trotalReserves) = peekInterest();
-
-    //     uint256 _exchangeRate = calcExchangeRate(
-    //         _totalBorrows,
-    //         _trotalReserves
-    //     );
-    //     uint256 balance = mulScalarTruncate(
-    //         _exchangeRate,
-    //         accountTokens[owner]
-    //     );
-    //     return balance;
-    // }
-
-    // function exchangeRateCurrent() public nonReentrant returns (uint256) {
-    //     accrueInterest();
-    //     return exchangeRateStored();
-    // }
-
     function getAccountState(address account)
         external
         view
@@ -491,16 +456,6 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         accrueInterest();
         return withdrawInternal(msg.sender, withdrawTokensIn, 0);
     }
-
-    // function withdrawUnderlying(uint256 withdrawAmount)
-    //     public
-    //     whenUnpaused
-    //     nonReentrant
-    //     returns (uint256, bytes memory)
-    // {
-    //     accrueInterest();
-    //     return withdrawInternal(msg.sender, 0, withdrawAmount);
-    // }
 
     function withdrawInternal(
         address payable withdrawer,
@@ -556,67 +511,6 @@ contract FToken is Exponential, OwnableUpgradeSafe {
 
         return tmp.withdrawAmount;
     }
-
-    // function strikeWithdrawInternal(
-    //     address withdrawer,
-    //     uint256 withdrawTokensIn,
-    //     uint256 withdrawAmountIn
-    // ) internal returns (uint256, bytes memory) {
-    //     require(
-    //         withdrawTokensIn == 0 || withdrawAmountIn == 0,
-    //         "withdraw parameter not valid"
-    //     );
-    //     WithdrawLocals memory tmp;
-
-    //     tmp.exchangeRate = exchangeRateStored();
-
-    //     if (withdrawTokensIn > 0) {
-    //         tmp.withdrawTokens = withdrawTokensIn;
-    //         tmp.withdrawAmount = mulScalarTruncate(
-    //             tmp.exchangeRate,
-    //             withdrawTokensIn
-    //         );
-    //     } else {
-    //         tmp.withdrawTokens = divScalarByExpTruncate(
-    //             withdrawAmountIn,
-    //             tmp.exchangeRate
-    //         );
-    //         tmp.withdrawAmount = withdrawAmountIn;
-    //     }
-
-    //     require(accrualBlockNumber == getBlockNumber(), "Blocknumber fails");
-
-    //     tmp.totalSupplyNew = totalSupply.sub(tmp.withdrawTokens);
-    //     tmp.accountTokensNew = accountTokens[withdrawer].sub(
-    //         tmp.withdrawTokens
-    //     );
-
-    //     totalSupply = tmp.totalSupplyNew;
-    //     accountTokens[withdrawer] = tmp.accountTokensNew;
-
-    //     uint256 preCalcTokenCash = tokenCash(underlying, address(this))
-    //         .add(tmp.withdrawAmount);
-
-    //     WithdrawLogStruct memory wls = WithdrawLogStruct(
-    //         withdrawer,
-    //         underlying,
-    //         address(this),
-    //         tmp.withdrawTokens,
-    //         tmp.withdrawAmount,
-    //         exchangeRateStored(),
-    //         interestRateModel.getBorrowRate(
-    //             preCalcTokenCash,
-    //             totalBorrows,
-    //             totalReserves
-    //         ),
-    //         tokenCash(address(this), withdrawer),
-    //         preCalcTokenCash
-    //     );
-
-    //     emit Transfer(withdrawer, address(0), tmp.withdrawTokens);
-
-    //     return (tmp.withdrawAmount, abi.encode(wls));
-    // }
 
     function accrueInterest() public {
         uint256 currentBlockNumber = getBlockNumber();
@@ -790,76 +684,6 @@ contract FToken is Exponential, OwnableUpgradeSafe {
 
         result = mulExp(borrowSnapshot.principal, divExp(borrowIndex, borrowSnapshot.interestIndex));
     }
-
-    // function _setInterestRateModel(IInterestRateModel newInterestRateModel)
-    //     public
-    //     onlyAdmin
-    // {
-    //     address oldIRM = address(interestRateModel);
-    //     uint256 oldUR = utilizationRate();
-    //     uint256 oldAPR = APR();
-    //     uint256 oldAPY = APY();
-
-    //     uint256 exRate1 = exchangeRateStored();
-    //     accrueInterest();
-    //     uint256 exRate2 = exchangeRateStored();
-
-    //     require(accrualBlockNumber == getBlockNumber(), "Blocknumber fails");
-
-    //     interestRateModel = newInterestRateModel;
-    //     uint256 newUR = utilizationRate();
-    //     uint256 newAPR = APR();
-    //     uint256 newAPY = APY();
-
-    //     emit NewInterestRateModel(oldIRM, oldUR, oldAPR, oldAPY, exRate1, address(newInterestRateModel), newUR, newAPR, newAPY, exRate2);
-
-    //     // ReserveDepositLogStruct memory rds = ReserveDepositLogStruct(
-    //     //     underlying,
-    //     //     0,
-    //     //     exchangeRateStored(),
-    //     //     getBorrowRate(),
-    //     //     tokenCash(underlying, address(this))
-    //     // );
-
-    //     // emit MonitorEvent(
-    //     //     "ReserveDeposit",
-    //     //     abi.encode(rds)
-    //     // );
-    // }
-
-    // function setInitialExchangeRate(uint256 _initialExchangeRate) external onlyOwner {
-    //     uint256 oldInitialExchangeRate = initialExchangeRate;
-
-    //     uint256 oldUR = utilizationRate();
-    //     uint256 oldAPR = APR();
-    //     uint256 oldAPY = APY();
-
-    //     uint256 exRate1 = exchangeRateStored();
-    //     accrueInterest();
-    //     uint256 exRate2 = exchangeRateStored();
-
-    //     require(accrualBlockNumber == getBlockNumber(), "Blocknumber fails");
-
-    //     initialExchangeRate = _initialExchangeRate;
-    //     uint256 newUR = utilizationRate();
-    //     uint256 newAPR = APR();
-    //     uint256 newAPY = APY();
-
-    //     // emit NewInitialExchangeRate(oldInitialExchangeRate, oldUR, oldAPR, oldAPY, exRate1, initialExchangeRate, newUR, newAPR, newAPY, exRate2);
-
-    //     // ReserveDepositLogStruct memory rds = ReserveDepositLogStruct(
-    //     //     underlying,
-    //     //     0,
-    //     //     exchangeRateStored(),
-    //     //     getBorrowRate(),
-    //     //     tokenCash(underlying, address(this))
-    //     // );
-
-    //     // emit MonitorEvent(
-    //     //     "ReserveDeposit",
-    //     //     abi.encode(rds)
-    //     // );
-    // }
 
     function getBlockNumber() internal view returns (uint256) {
         return block.number;
@@ -1039,117 +863,6 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         return seizeInternal(msg.sender, liquidator, borrower, seizeTokens);
     }
 
-    // function cancellingOut() public whenUnpaused nonReentrant {
-    //     (bool strikeOk, bytes memory strikeLog) = _cancellingOut(
-    //         msg.sender
-    //     );
-    //     if (strikeOk) {
-    //         emit MonitorEvent("CancellingOut", strikeLog);
-    //     }
-    // }
-
-    // function _cancellingOut(address striker)
-    //     internal
-    //     nonReentrant
-    //     returns (bool strikeOk, bytes memory strikeLog)
-    // {
-    //     if (
-    //         borrowBalanceStoredInternal(striker) > 0 && balanceOf(striker) > 0
-    //     ) {
-    //         accrueInterest();
-    //         uint256 lastPrincipal = accountBorrows[striker].principal;
-    //         uint256 curBorrowBalance = borrowBalanceStoredInternal(striker);
-    //         uint256 userSupplyBalance = calcBalanceOfUnderlying(striker);
-    //         uint256 lastFtokenBalance = balanceOf(striker);
-    //         uint256 actualRepayAmount;
-    //         bytes memory repayLog;
-    //         uint256 withdrawAmount;
-    //         bytes memory withdrawLog;
-    //         if (curBorrowBalance > 0 && userSupplyBalance > 0) {
-    //             if (userSupplyBalance > curBorrowBalance) {
-    //                 (withdrawAmount, withdrawLog) = strikeWithdrawInternal(
-    //                     striker,
-    //                     0,
-    //                     curBorrowBalance
-    //                 );
-    //             } else {
-    //                 (withdrawAmount, withdrawLog) = strikeWithdrawInternal(
-    //                     striker,
-    //                     balanceOf(striker),
-    //                     0
-    //                 );
-    //             }
-    //             (actualRepayAmount, repayLog) = repayInternal(
-    //                 striker,
-    //                 withdrawAmount
-    //             );
-    //             CallingOutLogStruct memory cols;
-    //             cols.user_address = striker;
-    //             cols.token_address = underlying;
-    //             cols.cheque_token_address = address(this);
-    //             cols.amount_wiped_out = SafeMathLib.abs(
-    //                 lastFtokenBalance,
-    //                 balanceOf(striker)
-    //             );
-    //             cols.debt_cancelled_out = actualRepayAmount;
-    //             cols.interest_accrued = SafeMathLib.abs(
-    //                 curBorrowBalance,
-    //                 lastPrincipal
-    //             );
-    //             cols.cheque_token_value = exchangeRateStored();
-    //             cols.loan_interest_rate = interestRateModel.getBorrowRate(
-    //                 tokenCash(underlying, address(this)),
-    //                 totalBorrows,
-    //                 totalReserves
-    //             );
-    //             cols.account_balance = tokenCash(address(this), striker);
-    //             cols.account_debt = accountBorrows[striker].principal;
-    //             cols.global_token_reserved = tokenCash(
-    //                 underlying,
-    //                 address(this)
-    //             );
-    //             strikeLog = abi.encode(cols);
-    //             strikeOk = true;
-    //         }
-    //     }
-    // }
-
-    // function transferFlashloanAsset(
-    //     address underlying,
-    //     address payable account,
-    //     uint256 amount
-    // ) public onlySelf {
-    //     transferToUserInternal(underlying, account, amount);
-    // }
-
-    // function currentBalanceForUnderlying(address token) public view returns (uint256) {
-    //     if (token == EthAddressLib.ethAddress()) {
-    //         return address(this).balance;
-    //     }
-    //     return IERC20Interface(token).balanceOf(address(this));
-    // }
-
-    // function flashloan(
-    //     address receiver,
-    //     uint256 amount,
-    //     bytes memory params
-    // ) public whenUnpaused nonReentrant {
-    //     uint256 balanceBefore = currentBalanceForUnderlying(underlying);
-    //     require(amount > 0 && amount <= balanceBefore, "insufficient flashloan liquidity");
-
-    //     uint256 fee = amount.mul(controller.flashloanFeeBips()).div(10000);
-    //     address payable _receiver = address(uint160(receiver));
-
-    //     this.transferFlashloanAsset(underlying, _receiver, amount);
-    //     IFlashLoanReceiver(_receiver).executeOperation(underlying, amount, fee, params);
-
-    //     uint256 balanceAfter = currentBalanceForUnderlying(underlying);
-    //     require(balanceAfter >= balanceBefore.add(fee), "invalid flashloan payback amount");
-    //     address payable vault = address(uint160(controller.flashloanVault()));
-    //     transferFlashloanAsset(underlying, vault, fee);
-    //     emit FlashLoan(receiver, underlying, amount, fee);
-    // }
-
     function balanceOf(address owner) public view returns (uint256) {
         return accountTokens[owner];
     }
@@ -1229,22 +942,6 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         _notEntered = true;
     }
 
-    // function APR() public view returns (uint256) {
-    //     uint256 cash = tokenCash(underlying, address(this));
-    //     return interestRateModel.APR(cash, totalBorrows, totalReserves);
-    // }
-
-    // function APY() public view returns (uint256) {
-    //     uint256 cash = tokenCash(underlying, address(this));
-    //     return
-    //         interestRateModel.APY(
-    //             cash,
-    //             totalBorrows,
-    //             totalReserves,
-    //             reserveFactor
-    //         );
-    // }
-
     function utilizationRate() public view returns (uint256) {
         uint256 cash = tokenCash(underlying, address(this));
         return interestRateModel.utilizationRate(cash, totalBorrows, totalReserves);
@@ -1254,15 +951,4 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         uint256 cash = tokenCash(underlying, address(this));
         return interestRateModel.getBorrowRate(cash, totalBorrows, totalReserves);
     }
-
-    // function getSupplyRate() public view returns (uint256) {
-    //     uint256 cash = tokenCash(underlying, address(this));
-    //     return
-    //         interestRateModel.getSupplyRate(
-    //             cash,
-    //             totalBorrows,
-    //             totalReserves,
-    //             reserveFactor
-    //         );
-    // }
 }
