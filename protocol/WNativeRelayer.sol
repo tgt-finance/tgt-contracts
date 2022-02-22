@@ -9,10 +9,10 @@ contract WNativeRelayer is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
   address public wnative;
   mapping(address => bool) okCallers;
 
-  constructor(address _wnative) public {
-    OwnableUpgradeSafe.__Ownable_init();
-    ReentrancyGuardUpgradeSafe.__ReentrancyGuard_init();
-    
+  function initialize(address _wnative) public initializer {
+    __Ownable_init();
+    __ReentrancyGuard_init();
+
     wnative = _wnative;
   }
 
