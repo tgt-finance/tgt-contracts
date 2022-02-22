@@ -8,41 +8,6 @@ import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 
 import "../utils/SafeToken.sol";
 
-// Claimable
-// Extension for the Ownable contract, where the ownership needs to be claimed.
-// This allows the new owner to accept the transfer.
-contract Claimable is OwnableUpgradeSafe {
-  address public pendingOwner;
-
-  constructor() public {
-    OwnableUpgradeSafe.__Ownable_init();
-  }
-
-  /**
-   * @dev Modifier throws if called by any account other than the pendingOwner.
-   */
-  modifier onlyPendingOwner() {
-    require(msg.sender == pendingOwner);
-    _;
-  }
-
-  /**
-   * @dev Allows the current owner to set the pendingOwner address.
-   * @param newOwner The address to transfer ownership to.
-   */
-  function transferOwnership(address newOwner) public override onlyOwner {
-    pendingOwner = newOwner;
-  }
-
-  /**
-   * @dev Allows the pendingOwner address to finalize the transfer.
-   */
-  function claimOwnership() public onlyPendingOwner {
-    transferOwnership(pendingOwner);
-    pendingOwner = address(0);
-  }
-}
-
 // Roles
 library Roles {
   struct Role {
@@ -179,7 +144,7 @@ contract RBAC {
  * `WhitelistProxy` and `this` are controlled by a centralized entity (blockimmo).
  *  This centralization is required by our legal framework to ensure investors are known and fully-legal.
  */
-contract Whitelist is Claimable, RBAC {
+contract Whitelist is OwnableUpgradeSafe, RBAC {
   function grantPermission(address _operator, string memory _permission) public onlyOwner {
     addRole(_operator, _permission);
   }
