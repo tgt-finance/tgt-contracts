@@ -274,11 +274,6 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         uint256 actualMintAmount;
     }
 
-    function mint(address user, uint256 amount) internal nonReentrant {
-        accrueInterest();
-        mintInternal(user, amount);
-    }
-
     function mintInternal(address user, uint256 amount) internal {
         require(accrualBlockNumber == getBlockNumber(), "Blocknumber fails");
         MintLocals memory tmp;
@@ -293,8 +288,10 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         emit Transfer(address(0), user, tmp.mintTokens);
     }
 
-    function deposit(uint256 amount) external payable whenUnpaused {
-        mint(msg.sender, amount);
+    function deposit(uint256 amount) external payable whenUnpaused nonReentrant {
+        accrueInterest();
+        mintInternal(msg.sender, amount);
+
         this.transferIn{value: msg.value}(msg.sender, underlying, amount);
         this.addTotalCash(amount);
 
