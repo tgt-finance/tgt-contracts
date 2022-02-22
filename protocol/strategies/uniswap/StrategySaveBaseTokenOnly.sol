@@ -40,7 +40,7 @@ contract StrategySaveBaseTokenOnly is OwnableUpgradeSafe, ReentrancyGuardUpgrade
     // 1. Approve router to do their stuffs
     baseToken.safeApprove(router, uint256(-1));
 
-    // 2. Convert farming tokens to base tokens.
+    // 2. Convert base tokens to farm tokens.
     IRouter(router).swapExactTokensForTokens(
         baseToken.myBalance(),
         amountOutMin,

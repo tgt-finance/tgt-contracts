@@ -71,7 +71,7 @@ contract InterestRateModel is OwnableUpgradeSafe {
                 .div(MAX_USAGE_RATE.sub(OPTICAL_USAGE_RATE))
             );
         } else {
-            // Not possible, but just in case - 130% APY
+            // Not possible, but just in case
             return interestSlope2;
         }
     }
