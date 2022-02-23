@@ -27,7 +27,7 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe {
 
   event AddDebt(uint256 indexed id, uint256 debtShare);
   event RemoveDebt(uint256 indexed id, uint256 debtShare);
-  event Work(uint256 indexed id, address worker, address owner, uint256 principal, uint256 loan, uint256 health, uint256 shares, uint256 deposit, uint256 withdraw, uint256 timestamp);
+  event Work(uint256 indexed id, address indexed worker, address owner, uint256 principal, uint256 loan, uint256 health, uint256 shares, uint256 deposit, uint256 withdraw, uint256 timestamp);
   event Kill(uint256 indexed id, address indexed killer, address owner, uint256 posVal, uint256 debt, uint256 prize, uint256 left);
 
   IVaultConfig public config;
