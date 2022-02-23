@@ -34,5 +34,7 @@ contract WNativeRelayer is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     require(success, "WNativeRelayer::onlyWhitelistedCaller:: can't withdraw");
   }
 
-  receive() external payable {}
+  receive() external payable {
+      require(msg.sender == wnative, "WNativeRelayer::onlyWnative");
+  }
 }
