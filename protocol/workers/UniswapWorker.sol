@@ -84,11 +84,6 @@ contract UniswapWorker is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe, IWorke
     okStrats[address(liqStrat)] = true;
   }
 
-  modifier onlyEOA() {
-    require(msg.sender == tx.origin, "worker not eoa");
-    _;
-  }
-
   modifier onlyOperator() {
     require(msg.sender == operator, "worker::not operator");
     _;
