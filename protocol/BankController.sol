@@ -147,8 +147,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
     mapping (address => uint256) public allFtokenExchangeUnits;
 
     // _setMarketBorrowSupplyCaps = _setMarketBorrowCaps + _setMarketSupplyCaps
-    function _setMarketBorrowSupplyCaps(address[] calldata tokens, uint[] calldata newBorrowCaps, uint[] calldata newSupplyCaps) external {
-        require(msg.sender == admin, "only admin can set borrow/supply caps");
+    function _setMarketBorrowSupplyCaps(address[] calldata tokens, uint[] calldata newBorrowCaps, uint[] calldata newSupplyCaps) external onlyAdmin {
 
         uint numMarkets = tokens.length;
         uint numBorrowCaps = newBorrowCaps.length;
@@ -168,8 +167,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         bool _borrowDisabled,
         bool _withdrawDisabled,
         bool _repayDisabled,
-        bool _liquidateBorrowDisabled) external {
-        require(msg.sender == admin, "only admin can set token configs");
+        bool _liquidateBorrowDisabled) external onlyAdmin {
         tokenConfigs[t] = TokenConfig(
             _depositDisabled,
             _borrowDisabled,
