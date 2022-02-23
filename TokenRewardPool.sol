@@ -70,6 +70,7 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
         mapping(address => PoolUser) users;
     }
 
+    mapping(IERC20Upgradeable => mapping(IERC20Upgradeable => bool)) isPoolCreated;
     mapping(uint256 => Pool) public pools;
     CountersUpgradeable.Counter public poolIdTracker; // starts from 0
 
@@ -88,6 +89,7 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
         IERC20Upgradeable _rewardsToken,
         address _rewardsDistributor
     ) public onlyOwner {
+        require(!isPoolCreated[_stakingToken][_rewardsToken], "TRP: POOL EXISTED!");
         Pool storage pool = pools[poolIdTracker.current()];
         pool.stakingToken = _stakingToken;
         pool.rewardsToken = _rewardsToken;
@@ -101,6 +103,7 @@ contract TokenRewardPool is OwnableUpgradeable, PausableUpgradeable, ReentrancyG
             _rewardsDistributor
         );
         poolIdTracker.increment();
+        isPoolCreated[_stakingToken][_rewardsToken] = true;
     }
 
     // admin step 5: set duration
