@@ -175,7 +175,6 @@ contract TokenVault is ReentrancyGuardUpgradeSafe, Whitelist {
     external onlyRole(WORKER_ROLE)
   {
     require(_receiver != address(0), "Receiver address is zero" );
-    require(SafeToken.balanceOf(_token, address(this)) >= _amount, "Illegal Amount");
 
     SafeToken.safeTransfer(_token, _receiver, _amount);
   }
