@@ -34,7 +34,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
     event MonitorEvent(bytes32 indexed funcName, bytes payload);
     event PausedSet();
     event UnpausedSet();
-    event PauserSet();
+    event PauserSet(address oldPauser, address newPauser);
     event NewAdminProposed(address indexed admin);
     event AdministrationClaimed();
 
@@ -90,8 +90,8 @@ contract BankController is Exponential, OwnableUpgradeSafe {
     }
 
     function setPauser(address _pauser) public onlyAdmin {
+        emit PauserSet(pauser, _pauser);
         pauser = _pauser;
-        emit PauserSet();
     }
 
 
