@@ -31,7 +31,7 @@ contract BandPriceOracle is IPriceOracle, OwnableUpgradeSafe {
     baseToken = newBaseToken;
   }
 
-  function getPrice(address token0, address token1) public override view returns (uint256 price, uint256 lastUpdate) {
+  function getPrice(address token0, address token1) public override view returns (uint256 _price, uint256 _lastUpdate) {
     string memory symbol0 = tokensMap[token0];
     string memory symbol1 = tokensMap[token1];
     require(bytes(symbol0).length != 0 && bytes(symbol1).length != 0, "token address is not set");
@@ -41,7 +41,7 @@ contract BandPriceOracle is IPriceOracle, OwnableUpgradeSafe {
   }
 
   function get(address token) external override view returns (uint256, bool) {
-    (uint256 price,) = getPrice(token, baseToken);
-    return (price, true);
+    (uint256 _price,) = getPrice(token, baseToken);
+    return (_price, true);
   }
 }
