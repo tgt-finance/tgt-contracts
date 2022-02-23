@@ -3,15 +3,10 @@ pragma solidity 0.6.6;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "../interfaces/IWorkerConfig.sol";
 import "../IPriceOracle.sol";
-import "../../utils/SafeToken.sol";
 
 contract WorkerConfig is OwnableUpgradeSafe, IWorkerConfig {
-  using SafeToken for address;
-  using SafeMath for uint256;
-
   struct Config {
     bool acceptDebt;
     uint64 workFactor;
