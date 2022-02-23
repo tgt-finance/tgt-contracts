@@ -33,20 +33,20 @@ interface IFarm {
     function getPoolUser(uint256 _poolId, address _userAddress) external view returns (PoolUser memory user);
 }
 
-contract FToken is Exponential, OwnableUpgradeSafe {
+contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
     using SafeERC20 for IERC20Interface;
 
-    uint256 public totalSupply;
+    uint256 public override totalSupply;
     string public name;
     string public symbol;
-    uint8 public decimals;
+    uint8 public override decimals;
 
     mapping(address => mapping(address => uint256)) internal transferAllowances;
 
     // address public admin;
     uint256 public initialExchangeRate;
-    uint256 public totalBorrows;
-    uint256 public totalReserves;
+    uint256 public override totalBorrows;
+    uint256 public override totalReserves;
 
     IVaultConfig public config;
 
@@ -61,9 +61,9 @@ contract FToken is Exponential, OwnableUpgradeSafe {
     uint256 internal constant borrowRateMax = 0.0005e16;
     uint256 public accrualBlockNumber;
     IInterestRateModel public interestRateModel;
-    address public underlying;
+    address public override underlying;
     IBankController public controller;
-    uint256 public borrowSafeRatio;
+    uint256 public override borrowSafeRatio;
     bool internal _notEntered;
 
     struct BorrowSnapshot {
@@ -73,9 +73,10 @@ contract FToken is Exponential, OwnableUpgradeSafe {
 
     mapping(address => uint256) public accountTokens;
     mapping(address => BorrowSnapshot) public accountBorrows;
-    uint256 public totalCash;
+    uint256 public override totalCash;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed src, address indexed spender, uint256 amount);
     event Deposit(address indexed account, uint256 value);
     event Borrow(address indexed account, uint256 value);
 
@@ -137,7 +138,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
     }
 
     function tokenCash(address token, address account)
-        public view returns (uint256)
+        public view override returns (uint256)
     {
         return token != EthAddressLib.ethAddress()
                 ? IERC20Interface(token).balanceOf(account)
@@ -148,7 +149,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         address _underlying,
         address payable account,
         uint256 amount
-    ) public onlyComponent {
+    ) public override onlyComponent {
         require(_underlying == underlying, "TransferToUser not allowed");
         transferToUserInternal(account, amount);
     }
@@ -169,7 +170,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
     }
 
     function transferIn(address account, address _underlying, uint256 amount)
-        public onlyComponent payable
+        public onlyComponent payable override
     {
 	    require(controller.marketsContains(msg.sender) || msg.sender == account, "auth failed");
         require(_underlying == underlying, "TransferToUser not allowed");
@@ -201,9 +202,9 @@ contract FToken is Exponential, OwnableUpgradeSafe {
      * @param dst The address of the destination account
      * @param amount The number of tokens to transfer
      */
-    function transfer(address dst, uint256 amount) external nonReentrant {
+    function transfer(address dst, uint256 amount) external nonReentrant override returns(bool result) {
         // spender - src - dst
-        transferTokens(msg.sender, msg.sender, dst, amount);
+        result = transferTokens(msg.sender, msg.sender, dst, amount);
         emit Transfer(msg.sender, dst, amount);
     }
 
@@ -213,7 +214,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
      * @param dst The address of the destination account
      * @param amount The number of tokens to transfer
      */
-    function transferFrom(address src, address dst, uint256 amount) external nonReentrant returns (bool) {
+    function transferFrom(address src, address dst, uint256 amount) external nonReentrant override returns (bool) {
         // spender - src - dst
         transferTokens(msg.sender, src, dst, amount);
         return true;
@@ -251,15 +252,15 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         return true;
     }
 
-    function approve(address spender, uint256 amount) external {
-        // address src = msg.sender;
+    function approve(address spender, uint256 amount) external override returns (bool) {
         transferAllowances[msg.sender][spender] = amount;
-        // emit Approval(src, spender, amount);
+        emit Approval(msg.sender, spender, amount);
+        return true;
     }
 
     function allowance(address owner, address spender)
         external
-        view
+        view override
         returns (uint256)
     {
         return transferAllowances[owner][spender];
@@ -306,7 +307,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         uint256 totalBorrowsNew;
     }
 
-    function borrow(uint256 borrowAmount) external nonReentrant whenUnpaused {
+    function borrow(uint256 borrowAmount) external nonReentrant whenUnpaused override {
         accrueInterest();
         borrowInternal(msg.sender, borrowAmount);
     }
@@ -371,7 +372,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         uint256 actualRepayAmount;
     }
 
-    function exchangeRateStored() public view returns (uint256 exchangeRate) {
+    function exchangeRateStored() public view override returns (uint256 exchangeRate) {
         return calcExchangeRate(totalBorrows, totalReserves);
     }
 
@@ -387,9 +388,9 @@ contract FToken is Exponential, OwnableUpgradeSafe {
             /*
              *  exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
              */
-            uint256 totalCash = controller.getCashPrior(underlying);
+            uint256 _totalCash = controller.getCashPrior(underlying);
             uint256 cashPlusBorrowsMinusReserves = subExp(
-                addExp(totalCash, _totalBorrows),
+                addExp(_totalCash, _totalBorrows),
                 _totalReserves
             );
             exchangeRate = getDiv(cashPlusBorrowsMinusReserves, _totalSupply);
@@ -407,12 +408,12 @@ contract FToken is Exponential, OwnableUpgradeSafe {
             /*
              *  exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
              */
-            uint256 totalCash = controller.getCashAfter(
+            uint256 _totalCash = controller.getCashAfter(
                 underlying,
                 transferInAmout
             );
             uint256 cashPlusBorrowsMinusReserves = subExp(
-                addExp(totalCash, totalBorrows),
+                addExp(_totalCash, totalBorrows),
                 totalReserves
             );
             exchangeRate = getDiv(cashPlusBorrowsMinusReserves, _totalSupply);
@@ -421,7 +422,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
 
     function getAccountState(address account)
         external
-        view
+        view override
         returns (
             uint256,
             uint256,
@@ -446,7 +447,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
     function withdrawTokens(uint256 withdrawTokensIn)
         public
         whenUnpaused
-        nonReentrant
+        nonReentrant override
         returns (uint256)
     {
         accrueInterest();
@@ -508,7 +509,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         return tmp.withdrawAmount;
     }
 
-    function accrueInterest() public {
+    function accrueInterest() public override {
         uint256 currentBlockNumber = getBlockNumber();
         uint256 accrualBlockNumberPrior = accrualBlockNumber;
 
@@ -658,7 +659,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
 
     function borrowBalanceCurrent(address account)
         external
-        nonReentrant
+        nonReentrant override
         returns (uint256)
     {
         accrueInterest();
@@ -686,7 +687,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
     }
 
     function repay(uint256 repayAmount)
-        external payable whenUnpaused nonReentrant
+        external payable whenUnpaused nonReentrant override
     {
         accrueInterest();
 
@@ -773,7 +774,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         this.addTotalCash(tmp.repayAmount);
     }
 
-    function borrowBalanceStored(address account) external view returns (uint256) {
+    function borrowBalanceStored(address account) external view override returns (uint256) {
         return borrowBalanceStoredInternal(account);
     }
 
@@ -781,7 +782,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         address borrower,
         uint256 repayAmount,
         address underlyingCollateral
-    ) public payable whenUnpaused nonReentrant
+    ) public payable whenUnpaused nonReentrant override
     {
         require(msg.sender != borrower, "Liquidator cannot be borrower");
         require(repayAmount > 0, "Liquidate amount not valid");
@@ -859,7 +860,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         return seizeInternal(msg.sender, liquidator, borrower, seizeTokens);
     }
 
-    function balanceOf(address owner) public view returns (uint256) {
+    function balanceOf(address owner) public view override returns (uint256) {
         return accountTokens[owner];
     }
 
@@ -886,7 +887,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         emit Transfer(borrower, mulsig, securityFund);
     }
 
-    function _reduceReserves(uint256 _reduceAmount) external onlyController {
+    function _reduceReserves(uint256 _reduceAmount) external override onlyController {
         accrueInterest();
 
         require(accrualBlockNumber == getBlockNumber(), "Blocknumber fails");
@@ -903,7 +904,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         );
     }
 
-    function _addReservesFresh(uint256 _addAmount) external onlyController {
+    function _addReservesFresh(uint256 _addAmount) external override onlyController {
         accrueInterest();
 
         require(accrualBlockNumber == getBlockNumber(), "Blocknumber fails");
@@ -923,11 +924,11 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         totalReserves = SafeMathLib.add(totalReserves, _addAmount);
     }
 
-    function addTotalCash(uint256 _addAmount) public onlyComponent {
+    function addTotalCash(uint256 _addAmount) public override onlyComponent {
         totalCash = totalCash.add(_addAmount);
     }
 
-    function subTotalCash(uint256 _subAmount) public onlyComponent {
+    function subTotalCash(uint256 _subAmount) public override onlyComponent {
         totalCash = totalCash.sub(_subAmount);
     }
 
@@ -943,7 +944,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         return interestRateModel.utilizationRate(cash, totalBorrows, totalReserves);
     }
 
-    function getBorrowRate() public view returns (uint256) {
+    function getBorrowRate() public view override returns (uint256) {
         uint256 cash = tokenCash(underlying, address(this));
         return interestRateModel.getBorrowRate(cash, totalBorrows, totalReserves);
     }

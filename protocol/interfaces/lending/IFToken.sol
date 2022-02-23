@@ -17,23 +17,12 @@ interface IFToken is IERC20Interface {
         uint256 amount
     ) external payable;
 
-    function transferFlashloanAsset(
-        address token,
-        address payable user,
-        uint256 amount
-    ) external;
+    function borrow(uint256 borrowAmount)
+        external;
 
-    function mint(address user, uint256 amount) external returns (bytes memory);
-
-    function borrow(address borrower, uint256 borrowAmount)
-        external
-        returns (bytes memory);
-
-    function withdraw(
-        address payable withdrawer,
-        uint256 withdrawTokensIn,
-        uint256 withdrawAmountIn
-    ) external returns (uint256, bytes memory);
+    function withdrawTokens(
+        uint256 withdrawTokensIn
+    ) external returns (uint256);
 
     function underlying() external view returns (address);
 
@@ -48,18 +37,7 @@ interface IFToken is IERC20Interface {
             uint256
         );
 
-    function MonitorEventCallback(
-        address who,
-        bytes32 funcName,
-        bytes calldata payload
-    ) external;
-
-    // Exchange rate after the user deposits, borrows, withdraw and repay
-    function exchangeRateCurrent() external view returns (uint256 exchangeRate);
-
-    function repay(address borrower, uint256 repayAmount)
-        external
-        returns (uint256, bytes memory);
+    function repay(uint256 repayAmount) payable external;
 
     function borrowBalanceStored(address account)
         external
@@ -72,28 +50,13 @@ interface IFToken is IERC20Interface {
         address borrower,
         uint256 repayAmount,
         address fTokenCollateral
-    ) external returns (bytes memory);
+    ) external payable;
 
     function borrowBalanceCurrent(address account) external returns (uint256);
-
-    function balanceOfUnderlying(address owner) external returns (uint256);
 
     function _reduceReserves(uint256 reduceAmount) external;
 
     function _addReservesFresh(uint256 addAmount) external;
-
-    function cancellingOut(address striker)
-        external
-        returns (bool strikeOk, bytes memory strikeLog);
-
-    function APR() external view returns (uint256);
-
-    function APY() external view returns (uint256);
-
-    function calcBalanceOfUnderlying(address owner)
-        external
-        view
-        returns (uint256);
 
     function borrowSafeRatio() external view returns (uint256);
 
