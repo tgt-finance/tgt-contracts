@@ -23,7 +23,7 @@ contract StrategySaveBaseTokenOnly is ReentrancyGuardUpgradeSafe, IStrategy {
     bytes calldata /* data */,
     bytes calldata _swapData
   )
-    external override payable nonReentrant
+    external override nonReentrant
   {
     (
       address baseToken,
