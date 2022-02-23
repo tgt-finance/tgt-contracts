@@ -3,8 +3,9 @@ pragma solidity 0.6.6;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "./library/SafeMathLib.sol";
+import "./interfaces/lending/IInterestRateModel.sol";
 
-contract InterestRateModel is OwnableUpgradeSafe {
+contract InterestRateModel is IInterestRateModel, OwnableUpgradeSafe {
     using SafeMathLib for uint256;
 
     uint256 public blocksPerYear;
@@ -39,7 +40,7 @@ contract InterestRateModel is OwnableUpgradeSafe {
         uint256 cash,
         uint256 borrows,
         uint256 reserves
-    ) public pure returns (uint256) {
+    ) public pure override returns (uint256) {
         if (borrows == 0) {
             return 0;
         }
@@ -80,7 +81,7 @@ contract InterestRateModel is OwnableUpgradeSafe {
     function getInterestRate(
         uint256 cash,
         uint256 borrows
-    ) external view returns (uint256) {
+    ) external view override returns (uint256) {
         return _getPureAPR(cash, borrows, 0).div(SECONDS_PER_YEAR);
     }
 
@@ -89,7 +90,7 @@ contract InterestRateModel is OwnableUpgradeSafe {
         uint256 cash,
         uint256 borrows,
         uint256 reserves
-    ) public view returns (uint256) {
+    ) public view override returns (uint256) {
         return _getPureAPR(cash, borrows, reserves).div(blocksPerYear);
     }
 
@@ -99,7 +100,7 @@ contract InterestRateModel is OwnableUpgradeSafe {
         uint256 borrows,
         uint256 reserves,
         uint256 reserveFactorMantissa
-    ) public view returns (uint256) {
+    ) public view override returns (uint256) {
         uint256 oneMinusReserveFactor = SafeMathLib.sub(
             uint256(1e18),
             reserveFactorMantissa,
@@ -113,7 +114,7 @@ contract InterestRateModel is OwnableUpgradeSafe {
         uint256 cash,
         uint256 borrows,
         uint256 reserves
-    ) external view returns (uint256) {
+    ) external view override returns (uint256) {
         return getBorrowRate(cash, borrows, reserves);
     }
 
@@ -122,7 +123,7 @@ contract InterestRateModel is OwnableUpgradeSafe {
         uint256 borrows,
         uint256 reserves,
         uint256 reserveFactorMantissa
-    ) external view returns (uint256) {
+    ) external view override returns (uint256) {
         return getSupplyRate(cash, borrows, reserves, reserveFactorMantissa);
     }
 
