@@ -265,13 +265,8 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         return assetsIn;
     }
 
-    function checkAccountsIn(address account, IFToken fToken)
-        external
-        view
-        returns (bool)
-    {
-        return
-            markets[IFToken(address(fToken)).underlying()].accountsIn[account];
+    function checkAccountsIn(address account, IFToken fToken) external view returns (bool) {
+        return markets[fToken.underlying()].accountsIn[account];
     }
 
     function userEnterMarket(IFToken fToken, address borrower) internal {
