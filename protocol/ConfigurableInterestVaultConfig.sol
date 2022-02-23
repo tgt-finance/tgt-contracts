@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 
 import "./interfaces/IVaultConfig.sol";
 import "./interfaces/IWorkerConfig.sol";
-import "./interfaces/InterestModel.sol";
+import "./interfaces/lending/IInterestRateModel.sol";
 
 contract ConfigurableInterestVaultConfig is IVaultConfig, OwnableUpgradeSafe {
   /// The minimum debt size per position.
@@ -18,7 +18,7 @@ contract ConfigurableInterestVaultConfig is IVaultConfig, OwnableUpgradeSafe {
   /// Mapping for worker address to its configuration.
   mapping(address => IWorkerConfig) public workers;
   /// Interest rate model
-  InterestModel public interestModel;
+  IInterestRateModel public interestModel;
   // address for wrapped native token
   address public wrappedNative;
   // address for wNtive Relayer
@@ -34,7 +34,7 @@ contract ConfigurableInterestVaultConfig is IVaultConfig, OwnableUpgradeSafe {
     uint256 _minDebtSize,
     uint256 _reservePoolBps,
     uint256 _killBps,
-    InterestModel _interestModel,
+    IInterestRateModel _interestModel,
     address _wrappedNative,
     address _wNativeRelayer
   ) public initializer {
@@ -52,7 +52,7 @@ contract ConfigurableInterestVaultConfig is IVaultConfig, OwnableUpgradeSafe {
     uint256 _minDebtSize,
     uint256 _reservePoolBps,
     uint256 _killBps,
-    InterestModel _interestModel,
+    IInterestRateModel _interestModel,
     address _wrappedNative,
     address _wNativeRelayer
   ) public onlyOwner {
@@ -84,7 +84,7 @@ contract ConfigurableInterestVaultConfig is IVaultConfig, OwnableUpgradeSafe {
     getKillBps = _killBps;
   }
 
-  function setInterestModel(InterestModel _interestModel) external onlyOwner {
+  function setInterestModel(IInterestRateModel _interestModel) external onlyOwner {
     interestModel = _interestModel;
   }
 
