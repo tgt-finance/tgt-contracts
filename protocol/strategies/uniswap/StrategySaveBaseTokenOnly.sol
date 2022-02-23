@@ -13,7 +13,7 @@ contract StrategySaveBaseTokenOnly is ReentrancyGuardUpgradeSafe, IStrategy {
   using SafeToken for address;
 
   function initialize() public initializer {
-    ReentrancyGuardUpgradeSafe.__ReentrancyGuard_init();
+    __ReentrancyGuard_init();
   }
 
   /// @dev Execute worker strategy.

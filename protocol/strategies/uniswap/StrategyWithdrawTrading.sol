@@ -2,21 +2,17 @@
 pragma solidity 0.6.6;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 
 import "../../interfaces/IStrategy.sol";
 import "../../../utils/SafeToken.sol";
 import "../../interfaces/IRouter.sol";
 
-contract StrategyWithdrawTrading is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe, IStrategy {
+contract StrategyWithdrawTrading is ReentrancyGuardUpgradeSafe, IStrategy {
   using SafeToken for address;
-  using SafeMath for uint256;
 
   function initialize() public initializer {
-    OwnableUpgradeSafe.__Ownable_init();
-    ReentrancyGuardUpgradeSafe.__ReentrancyGuard_init();
+    __ReentrancyGuard_init();
   }
 
   /// Execute worker strategy.
