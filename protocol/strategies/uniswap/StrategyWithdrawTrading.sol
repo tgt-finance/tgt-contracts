@@ -22,7 +22,7 @@ contract StrategyWithdrawTrading is ReentrancyGuardUpgradeSafe, IStrategy {
     bytes calldata /* _data */,
     bytes calldata _swapData
   )
-    external override payable nonReentrant
+    external override nonReentrant
   {
     (
       address baseToken,
