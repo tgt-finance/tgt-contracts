@@ -36,6 +36,8 @@ contract StrategySaveBaseTokenOnly is ReentrancyGuardUpgradeSafe, IStrategy {
     // 1. Approve router to do their stuffs
     baseToken.safeApprove(router, uint256(-1));
 
+    uint256 balanceBefore = farmToken.myBalance();
+
     // 2. Convert base tokens to farm tokens.
     IRouter(router).swapExactTokensForTokens(
         baseToken.myBalance(),
@@ -45,10 +47,12 @@ contract StrategySaveBaseTokenOnly is ReentrancyGuardUpgradeSafe, IStrategy {
         now
     );
 
-    require(farmToken.myBalance() > 0, "swap farmToken is zero");
+    uint256 balanceAfter = farmToken.myBalance();
+
+    require(balanceAfter > balanceBefore, "balanceAfter should be > balanceBefore");
 
     // 3. Transfer Farm Token to Vault
-    farmToken.safeTransfer(msg.sender, farmToken.myBalance());
+    farmToken.safeTransfer(msg.sender, balanceAfter);
 
     // 4. Reset approval for safety reason
     baseToken.safeApprove(router, 0);
