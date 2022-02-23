@@ -150,11 +150,10 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         uint256 amount
     ) public onlyComponent {
         require(_underlying == underlying, "TransferToUser not allowed");
-        transferToUserInternal(underlying, account, amount);
+        transferToUserInternal(account, amount);
     }
 
     function transferToUserInternal(
-        address _underlying,
         address payable account,
         uint256 amount
     ) internal {
@@ -335,7 +334,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         accountBorrows[borrower].interestIndex = borrowIndex;
         totalBorrows = tmp.totalBorrowsNew;
 
-        transferToUserInternal(underlying, borrower, borrowAmount);
+        transferToUserInternal(borrower, borrowAmount);
         this.subTotalCash(borrowAmount);
 
         emit Borrow(borrower, borrowAmount);
@@ -359,7 +358,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
         accountBorrows[borrower].interestIndex = 1e18;
         totalBorrows = addExp(totalBorrows, borrowAmount);
 
-        transferToUserInternal(underlying, msg.sender, borrowAmount);
+        transferToUserInternal(msg.sender, borrowAmount);
         this.subTotalCash(borrowAmount);
     }
 
@@ -495,7 +494,7 @@ contract FToken is Exponential, OwnableUpgradeSafe {
             "Insufficient money"
         );
 
-        transferToUserInternal(underlying, withdrawer, tmp.withdrawAmount);
+        transferToUserInternal(withdrawer, tmp.withdrawAmount);
         this.subTotalCash(tmp.withdrawAmount);
 
         totalSupply = tmp.totalSupplyNew;
