@@ -2,7 +2,7 @@
 pragma solidity 0.6.6;
 
 interface IWorker {
-  /// @dev For dodo  
+  /// @dev Pass parameters as call data.
   function workWithData(uint256 id, address user, uint256 debt, bytes calldata data, bytes calldata swapData) external;
 
   /// @dev Return the amount of ETH wei to get back if we are to liquidate the position.
