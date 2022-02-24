@@ -696,13 +696,11 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
     function repay(uint256 repayAmount)
         external payable whenUnpaused nonReentrant override
     {
+        uint256 actualRepayAmount = repayInternal(msg.sender, repayAmount);
         // first transfer, then check
         transferIn{value: msg.value}(actualRepayAmount);
-
         // finally do actions
         accrueInterest();
-
-        uint256 actualRepayAmount = repayInternal(msg.sender, repayAmount);
         this.addTotalCash(actualRepayAmount);
         // return (actualRepayAmount, flog);
     }
