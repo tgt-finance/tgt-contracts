@@ -170,7 +170,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
     }
 
     function transferIn(uint256 amount)
-        internal onlyComponent
+        internal
     {
 	    require(controller.marketsContains(msg.sender), "FToken: !marketsContains");
         address _underlying = underlying;
