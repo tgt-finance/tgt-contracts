@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
 
 import "./interfaces/IWorker.sol";
 import "./interfaces/IVault.sol";
@@ -21,7 +22,7 @@ interface IFToken {
   function addReservesForLeverage(uint addAmount) external;
 }
 
-contract Vault is IVault, Exponential, OwnableUpgradeSafe {
+contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
 
   using SafeToken for address;
   using AddressLib for address;
@@ -124,7 +125,8 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe {
     address _token,
     address _ftoken
   ) public initializer {
-    OwnableUpgradeSafe.__Ownable_init();
+    __Ownable_init();
+    __ReentrancyGuard_init();
 
     config = IVaultConfig(_config);
     ftoken = _ftoken;
@@ -187,7 +189,7 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe {
     bytes calldata data,
     bytes calldata swapData
   )
-    external payable
+    external payable nonReentrant
    transferTokenToVault(workEntity.principalAmount) accrue(workEntity.principalAmount)
   {
     Position storage pos;
@@ -293,7 +295,7 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe {
   /// @dev Kill the given to the position. Liquidate it immediately if killFactor condition is met.
   /// @param id The position ID to be killed.
   /// @param swapData Swap token data in the dex protocol.
-  function kill(uint256 id, bytes calldata swapData) external accrue(0) {
+  function kill(uint256 id, bytes calldata swapData) external accrue(0) nonReentrant {
     require(!address(msg.sender).isContract(), "Not EOA");
     Position storage pos = positions[id];
     require(pos.debtShare > 0, "kill:: no debt");
