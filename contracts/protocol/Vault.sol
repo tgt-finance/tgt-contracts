@@ -233,10 +233,15 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
       IWorker(workEntity.worker).workWithData(id, msg.sender, debt, data, swapData);
       tokenReceivedFromWorker = SafeMathLib.sub(SafeToken.myBalance(token), tokenAmountBeforeSend, "tokenReceivedFromWorker");
     }
-    uint256 lessDebt = Math.min(debt, tokenReceivedFromWorker);
-    if (lessDebt > 0) {
+    // open position: reducedDebt == 0
+    // close postion, debt > tokenReceivedFromWorker: reducedDebt == tokenReceivedFromWorker > 0
+    // close postion, debt < tokenReceivedFromWorker: reducedDebt == debt > 0
+    uint256 reducedDebt = Math.min(debt, tokenReceivedFromWorker);
+    // close position, repay
+    if (reducedDebt > 0) {
       SafeToken.safeApprove(token, ftoken, uint(-1));
       uint256 interest = SafeMathLib.sub(debt, afterLoan);
+      // for reserve fund, reserveFund is part of interest
       uint256 reserveFund = divExp(mulExp(reserveFactor, interest), expScale);
       // repay without interest
       IFToken(ftoken).repayInternalForLeverage(pos.worker, SafeMathLib.sub(reducedDebt, interest));
@@ -245,9 +250,9 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
       // transfer back remaining interest to lending pool
       SafeToken.safeTransfer(token, ftoken, SafeMathLib.sub(interest, reserveFund));
       SafeToken.safeApprove(token, ftoken, uint(0));
-      afterLoan = SafeMathLib.sub(afterLoan, SafeMathLib.sub(lessDebt, interest));
+      afterLoan = SafeMathLib.sub(afterLoan, SafeMathLib.sub(reducedDebt, interest));
     }
-    debt = SafeMathLib.sub(debt, lessDebt, "debt");
+    debt = SafeMathLib.sub(debt, reducedDebt, "debt");
     if (debt > 0) {
       require(debt >= config.minDebtSize(), "too small debt size");
       uint256 health = IWorker(workEntity.worker).health(id);
@@ -258,19 +263,21 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
       _addDebt(id, debt);
     }
 
-    if (tokenReceivedFromWorker > lessDebt) {
+    // 100% close postion, send back remaining token to user
+    if (tokenReceivedFromWorker > reducedDebt) {
       if(token == config.getWrappedNativeAddr()) {
-        SafeToken.safeTransfer(token, config.getWNativeRelayer(), tokenReceivedFromWorker.sub(lessDebt));
-        WNativeRelayer(uint160(config.getWNativeRelayer())).withdraw(tokenReceivedFromWorker.sub(lessDebt));
-        SafeToken.safeTransferETH(msg.sender, tokenReceivedFromWorker.sub(lessDebt));
+        SafeToken.safeTransfer(token, config.getWNativeRelayer(), tokenReceivedFromWorker.sub(reducedDebt));
+        WNativeRelayer(uint160(config.getWNativeRelayer())).withdraw(tokenReceivedFromWorker.sub(reducedDebt));
+        SafeToken.safeTransferETH(msg.sender, tokenReceivedFromWorker.sub(reducedDebt));
       } else {
-        SafeToken.safeTransfer(token, msg.sender, tokenReceivedFromWorker.sub(lessDebt));
+        SafeToken.safeTransfer(token, msg.sender, tokenReceivedFromWorker.sub(reducedDebt));
       }
       PositionRecord storage record;
       record = userToPositionRecord[msg.sender][pos.worker];
-      record.withdraw = record.withdraw.add(tokenReceivedFromWorker.sub(lessDebt));
+      record.withdraw = record.withdraw.add(tokenReceivedFromWorker.sub(reducedDebt));
     }
 
+    // 100% close postion, reset values
     if (IWorker(workEntity.worker).getShares(id) == 0) {
       userToPositionRecord[msg.sender][pos.worker].deposit = 0;
       userToPositionRecord[msg.sender][pos.worker].withdraw = 0;
@@ -337,8 +344,8 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
       IFToken(ftoken).addReservesForLeverage(securityFund);
     }
 
-    uint256 lessDebt = Math.min(debt, back);
-    debt = SafeMathLib.sub(debt, lessDebt, "debt");
+    uint256 reducedDebt = Math.min(debt, back);
+    debt = SafeMathLib.sub(debt, reducedDebt, "debt");
     // record remaining debt
     if (debt > 0) {
       _addDebt(id, debt);
