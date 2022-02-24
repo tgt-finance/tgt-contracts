@@ -41,11 +41,6 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
   uint256 private beforeLoan;
   uint256 private afterLoan;
 
-  /// @dev Temporay variables to manage execution scope
-  uint256 public _IN_EXEC_LOCK;
-  uint256 public POSITION_ID;
-  address public STRATEGY;
-
   address public token;
   address public ftoken;
   uint256 public vaultDebtShare;
@@ -135,11 +130,6 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
     nextPositionID = 1;
     lastAccrueTime = now;
     token = _token;
-
-    // free-up execution scope
-    _IN_EXEC_LOCK = _NOT_ENTERED;
-    POSITION_ID = _NO_ID;
-    STRATEGY = _NO_ADDRESS;
   }
 
   /// Return the pending interest that will be accrued in the next call.
@@ -206,9 +196,6 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
       require(pos.worker == workEntity.worker, "bad position worker");
       require(pos.owner == msg.sender, "not position owner");
     }
-
-    POSITION_ID = id;
-    (STRATEGY, ) = abi.decode(data, (address, bytes));
 
     require(config.isWorker(workEntity.worker), "not a worker");
     require(workEntity.loan == 0 || config.acceptDebt(workEntity.worker), "worker not accept more debt");
@@ -284,8 +271,6 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
       block.timestamp
     );
 
-    POSITION_ID = _NO_ID;
-    STRATEGY = _NO_ADDRESS;
     beforeLoan = 0;
     afterLoan = 0;
   }
