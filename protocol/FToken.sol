@@ -247,7 +247,9 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         }
 
         (address farm, uint256 poolId) = config.getFarmConfig(address(this));
-        IFarm(farm).transfer(poolId, src, dst, tokens);
+        if(farm != address(0)) {
+            IFarm(farm).transfer(poolId, src, dst, tokens);
+        }
         emit Transfer(src, dst, tokens);
         return true;
     }
@@ -296,7 +298,9 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         this.addTotalCash(amount);
 
         (address farm, uint256 poolId) = config.getFarmConfig(address(this));
-        IFarm(farm).stake(poolId, msg.sender, amount);
+        if(farm != address(0)) {
+            IFarm(farm).stake(poolId, msg.sender, amount);
+        }
 
         emit Deposit(msg.sender, amount);
     }
@@ -502,7 +506,9 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         accountTokens[withdrawer] = tmp.accountTokensNew;
 
         (address farm, uint256 poolId) = config.getFarmConfig(address(this));
-        IFarm(farm).withdraw(poolId, msg.sender, tmp.withdrawTokens);
+        if(farm != address(0)) {
+            IFarm(farm).withdraw(poolId, msg.sender, tmp.withdrawTokens);
+        }
 
         emit Transfer(withdrawer, address(0), tmp.withdrawTokens);
 
@@ -881,8 +887,10 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         accountTokens[liquidator] = accountTokens[liquidator].add(prize);
 
         (address farm, uint256 poolId) = config.getFarmConfig(address(this));
-        IFarm(farm).transfer(poolId, borrower, liquidator, prize);
-        IFarm(farm).transfer(poolId, borrower, mulsig, securityFund);
+        if(farm != address(0)) {
+            IFarm(farm).transfer(poolId, borrower, liquidator, prize);
+            IFarm(farm).transfer(poolId, borrower, mulsig, securityFund);
+        }
         emit Transfer(borrower, liquidator, prize);
         emit Transfer(borrower, mulsig, securityFund);
     }
