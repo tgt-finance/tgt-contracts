@@ -106,7 +106,7 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
     config = _config;
   }
 
-  /// @dev security Part in 10000 eg: 100/10000, reserve decimals is 1e18 eg: 1e17
+  /// @dev security Part in 10000 eg: 1000/10000, reserve decimals is 1e18 eg: 1e16
   function updateSecurityAndReserveFactor(uint256 _securityFactor, uint256 _reserveFactor) external onlyOwner {
     securityFactor = _securityFactor;
     reserveFactor = _reserveFactor;
@@ -124,8 +124,8 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
     config = IVaultConfig(_config);
     ftoken = _ftoken;
 
-    securityFactor = 100;
-    reserveFactor = 1e17;
+    securityFactor = 1000;
+    reserveFactor = 1e16;
 
     nextPositionID = 1;
     lastAccrueTime = now;
