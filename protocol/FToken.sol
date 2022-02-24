@@ -291,10 +291,11 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
     }
 
     function deposit(uint256 amount) external payable whenUnpaused nonReentrant {
+        // first transfer, then check
+        transferIn{value: msg.value}(amount);
+        // finally do actions
         accrueInterest();
         mintInternal(msg.sender, amount);
-
-        transferIn{value: msg.value}(amount);
         this.addTotalCash(amount);
 
         (address farm, uint256 poolId) = config.getFarmConfig(address(this));
@@ -695,11 +696,13 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
     function repay(uint256 repayAmount)
         external payable whenUnpaused nonReentrant override
     {
+        // first transfer, then check
+        transferIn{value: msg.value}(actualRepayAmount);
+
+        // finally do actions
         accrueInterest();
 
         uint256 actualRepayAmount = repayInternal(msg.sender, repayAmount);
-
-        transferIn{value: msg.value}(actualRepayAmount);
         this.addTotalCash(actualRepayAmount);
         // return (actualRepayAmount, flog);
     }
@@ -757,6 +760,12 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
             tmp.repayAmount = repayAmount;
         }
 
+        // first transfer, then check
+        transferIn{value: msg.value}(tmp.repayAmount);
+
+        // finally do actions
+        this.addTotalCash(tmp.repayAmount);
+
         tmp.accountBorrowsNew = SafeMathLib.sub(tmp.accountBorrows, tmp.repayAmount, "tmp.accountBorrowsNew sub");
         if (totalBorrows < tmp.repayAmount) {
             tmp.totalBorrowsNew = 0;
@@ -767,9 +776,6 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         accountBorrows[borrower].principal = tmp.accountBorrowsNew;
         accountBorrows[borrower].interestIndex = tmp.borrowerIndex;
         totalBorrows = tmp.totalBorrowsNew;
-
-        transferIn{value: msg.value}(tmp.repayAmount);
-        this.addTotalCash(tmp.repayAmount);
     }
 
     function borrowBalanceStored(address account) external view override returns (uint256) {
