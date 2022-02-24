@@ -10,6 +10,7 @@ import "./interfaces/IVault.sol";
 import "../utils/SafeToken.sol";
 import "./WNativeRelayer.sol";
 import "./library/SafeMathLib.sol";
+import "./library/Address.sol";
 import "./interfaces/IVaultConfig.sol";
 import "./Exponential.sol";
 
@@ -23,6 +24,7 @@ interface IFToken {
 contract Vault is IVault, Exponential, OwnableUpgradeSafe {
 
   using SafeToken for address;
+  using AddressLib for address;
   using SafeMathLib for uint256;
 
   event AddDebt(uint256 indexed id, uint256 debtShare);
@@ -81,11 +83,6 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe {
   mapping (address => mapping (address => uint256)) public userToPositionId;
   // user => worker => Position
   mapping (address => mapping (address => PositionRecord)) public userToPositionRecord;
-
-  modifier onlyEOA() {
-    require(msg.sender == tx.origin, "onlyEoa:: not eoa");
-    _;
-  }
 
   /// @dev Get token from msg.sender
   modifier transferTokenToVault(uint256 value) {
@@ -296,7 +293,8 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe {
   /// @dev Kill the given to the position. Liquidate it immediately if killFactor condition is met.
   /// @param id The position ID to be killed.
   /// @param swapData Swap token data in the dex protocol.
-  function kill(uint256 id, bytes calldata swapData) external onlyEOA accrue(0) {
+  function kill(uint256 id, bytes calldata swapData) external accrue(0) {
+    require(!address(msg.sender).isContract(), "Not EOA");
     Position storage pos = positions[id];
     require(pos.debtShare > 0, "kill:: no debt");
 
