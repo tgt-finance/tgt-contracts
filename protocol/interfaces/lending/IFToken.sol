@@ -15,7 +15,7 @@ interface IFToken is IERC20Interface {
         address account,
         address underlying,
         uint256 amount
-    ) external payable;
+    ) internal payable;
 
     function borrow(uint256 borrowAmount)
         external;

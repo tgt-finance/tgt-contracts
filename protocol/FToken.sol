@@ -170,7 +170,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
     }
 
     function transferIn(address account, address _underlying, uint256 amount)
-        public onlyComponent payable override
+        internal onlyComponent payable override
     {
 	    require(controller.marketsContains(msg.sender) || msg.sender == account, "auth failed");
         require(_underlying == underlying, "TransferToUser not allowed");
@@ -294,7 +294,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         accrueInterest();
         mintInternal(msg.sender, amount);
 
-        this.transferIn{value: msg.value}(msg.sender, underlying, amount);
+        transferIn{value: msg.value}(msg.sender, underlying, amount);
         this.addTotalCash(amount);
 
         (address farm, uint256 poolId) = config.getFarmConfig(address(this));
@@ -699,7 +699,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
 
         uint256 actualRepayAmount = repayInternal(msg.sender, repayAmount);
 
-        this.transferIn{value: msg.value}(
+        transferIn{value: msg.value}(
             msg.sender,
             underlying,
             actualRepayAmount
@@ -772,7 +772,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         accountBorrows[borrower].interestIndex = tmp.borrowerIndex;
         totalBorrows = tmp.totalBorrowsNew;
 
-        this.transferIn{value: msg.value}(
+        transferIn{value: msg.value}(
             msg.sender,
             underlying,
             tmp.repayAmount
@@ -800,7 +800,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
 
         _liquidateBorrow(msg.sender, borrower, repayAmount, fTokenCollateral);
 
-        this.transferIn{value: msg.value}(
+        transferIn{value: msg.value}(
             msg.sender,
             underlying,
             repayAmount
@@ -924,7 +924,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         accrueInterest();
 
         require(accrualBlockNumber == getBlockNumber(), "Blocknumber fails");
-        this.transferIn{value: msg.value}(
+        transferIn{value: msg.value}(
             msg.sender,
             underlying,
             _addAmount
