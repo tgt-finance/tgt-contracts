@@ -333,6 +333,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
     }
 
     function mintCheck(address underlying, address minter, uint256 amount) external {
+        require(minter != address(0), "minter cannot be 0");
         require(marketsContains(msg.sender), "MintCheck fails");
         require(markets[underlying].isValid, "Market not valid");
         require(!tokenConfigs[underlying].depositDisabled, "deposit disabled");
@@ -359,6 +360,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         address fToken,
         uint256 borrowAmount
     ) external {
+        require(account != address(0), "account cannot be 0");
         require(underlying == IFToken(msg.sender).underlying(), "invalid underlying token");
         require(markets[underlying].isValid, "Market not valid");
         require(!tokenConfigs[underlying].borrowDisabled, "borrow disabled");
