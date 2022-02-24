@@ -171,6 +171,11 @@ contract TokenVault is ReentrancyGuardUpgradeSafe, Whitelist {
 
   string public constant WORKER_ROLE = "VaultWorker";
 
+  function initialize() public initializer {
+    __Ownable_init();
+    __ReentrancyGuard_init();
+  }
+
   function withdraw(address _token, uint256 _amount, address _receiver)
     external onlyRole(WORKER_ROLE)
   {
