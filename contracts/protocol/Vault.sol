@@ -238,9 +238,12 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
       SafeToken.safeApprove(token, ftoken, uint(-1));
       uint256 interest = SafeMathLib.sub(debt, afterLoan);
       uint256 reserveFund = divExp(mulExp(reserveFactor, interest), expScale);
-      IFToken(ftoken).repayInternalForLeverage(pos.worker, reserveFund);
+      // repay without interest
+      IFToken(ftoken).repayInternalForLeverage(pos.worker, SafeMathLib.sub(reducedDebt, interest));
+      // record reserveFund in lending pool/ftoken
       IFToken(ftoken).addReservesForLeverage(reserveFund);
-      SafeToken.safeTransfer(token, ftoken, SafeMathLib.sub(lessDebt, interest + reserveFund));
+      // transfer back remaining interest to lending pool
+      SafeToken.safeTransfer(token, ftoken, SafeMathLib.sub(interest, reserveFund));
       SafeToken.safeApprove(token, ftoken, uint(0));
       afterLoan = SafeMathLib.sub(afterLoan, SafeMathLib.sub(lessDebt, interest));
     }
