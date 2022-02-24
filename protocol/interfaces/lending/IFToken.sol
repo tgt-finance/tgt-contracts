@@ -12,8 +12,6 @@ interface IFToken is IERC20Interface {
     ) external;
 
     function transferIn(
-        address account,
-        address underlying,
         uint256 amount
     ) internal payable;
 

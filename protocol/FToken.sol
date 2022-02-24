@@ -169,18 +169,18 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         }
     }
 
-    function transferIn(address account, address _underlying, uint256 amount)
+    function transferIn(uint256 amount)
         internal onlyComponent payable override
     {
-	    require(controller.marketsContains(msg.sender) || msg.sender == account, "auth failed");
-        require(_underlying == underlying, "TransferToUser not allowed");
+	    require(controller.marketsContains(msg.sender), "FToken: !marketsContains");
+        address _underlying = underlying;
+        // erc20 => transferFrom
         if (_underlying != EthAddressLib.ethAddress()) {
             require(msg.value == 0, "ERC20 do not accecpt ETH.");
             uint256 balanceBefore = IERC20Interface(_underlying).balanceOf(address(this));
-            IERC20Interface(_underlying).safeTransferFrom(account, address(this), amount);
+            IERC20Interface(_underlying).safeTransferFrom(msg.sender, address(this), amount);
             uint256 balanceAfter = IERC20Interface(_underlying).balanceOf(address(this));
             require(balanceAfter - balanceBefore == amount, "TransferIn amount not valid");
-            // erc20 => transferFrom
         } else {
             // Receive eth transfer, which has been transferred through payable
             require(msg.value >= amount, "Eth value is not enough");
@@ -188,7 +188,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
                 // send back excess ETH
                 uint256 excessAmount = msg.value.sub(amount);
                 //solium-disable-next-line
-                (bool result, ) = account.call{
+                (bool result, ) = msg.sender.call{
                     value: excessAmount,
                     gas: controller.transferEthGasCost()
                 }("");
@@ -294,7 +294,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         accrueInterest();
         mintInternal(msg.sender, amount);
 
-        transferIn{value: msg.value}(msg.sender, underlying, amount);
+        transferIn{value: msg.value}(amount);
         this.addTotalCash(amount);
 
         (address farm, uint256 poolId) = config.getFarmConfig(address(this));
@@ -699,11 +699,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
 
         uint256 actualRepayAmount = repayInternal(msg.sender, repayAmount);
 
-        transferIn{value: msg.value}(
-            msg.sender,
-            underlying,
-            actualRepayAmount
-        );
+        transferIn{value: msg.value}(actualRepayAmount);
         this.addTotalCash(actualRepayAmount);
         // return (actualRepayAmount, flog);
     }
@@ -772,11 +768,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         accountBorrows[borrower].interestIndex = tmp.borrowerIndex;
         totalBorrows = tmp.totalBorrowsNew;
 
-        transferIn{value: msg.value}(
-            msg.sender,
-            underlying,
-            tmp.repayAmount
-        );
+        transferIn{value: msg.value}(tmp.repayAmount);
         this.addTotalCash(tmp.repayAmount);
     }
 
@@ -800,11 +792,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
 
         _liquidateBorrow(msg.sender, borrower, repayAmount, fTokenCollateral);
 
-        transferIn{value: msg.value}(
-            msg.sender,
-            underlying,
-            repayAmount
-        );
+        transferIn{value: msg.value}(repayAmount);
 
         this.addTotalCash(repayAmount);
     }
@@ -924,11 +912,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         accrueInterest();
 
         require(accrualBlockNumber == getBlockNumber(), "Blocknumber fails");
-        transferIn{value: msg.value}(
-            msg.sender,
-            underlying,
-            _addAmount
-        );
+        transferIn{value: msg.value}(_addAmount);
         totalReserves = SafeMathLib.add(totalReserves, _addAmount);
     }
 
