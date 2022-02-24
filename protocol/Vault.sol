@@ -99,16 +99,6 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe {
     _;
   }
 
-  /// @dev Ensure that the function is called with the execution scope
-  modifier inExec() {
-    require(POSITION_ID != _NO_ID, "inExec:: not within execution scope");
-    require(STRATEGY == msg.sender, "inExec:: not from the strategy");
-    require(_IN_EXEC_LOCK == _NOT_ENTERED, "inExec:: in exec lock");
-    _IN_EXEC_LOCK = _ENTERED;
-    _;
-    _IN_EXEC_LOCK = _NOT_ENTERED;
-  }
-
   /// @dev Add more debt to the bank debt pool.
   modifier accrue(uint256 value) {
     if (now > lastAccrueTime) {
