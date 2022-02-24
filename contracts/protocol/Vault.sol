@@ -315,13 +315,10 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
     }
     // 5% of the liquidation value will become Clearance Fees
     uint256 clearanceFees = back.mul(config.getKillBps()).div(10000);
-    // clearanceFees will be distributed to 4 parts:
-    // 30% for liquidator reward
-    uint256 prize = clearanceFees.mul(securityFactor).div(10000);
-    // 30% for protocol token stakers reward
-    // 30% to be converted to ProtocolToken/USDT LP Pair on Dex
-    // 10% to security fund
-    uint256 securityFund = clearanceFees.sub(prize);
+    // 10% of clearanceFees for security fund
+    uint256 securityFund = clearanceFees.mul(securityFactor).div(10000);
+    // remaining clearanceFees to liquidator reward
+    uint256 prize = clearanceFees.sub(securityFund);
 
     uint256 rest = back.sub(clearanceFees);
     // Clear position debt and return funds to liquidator and position owner.
