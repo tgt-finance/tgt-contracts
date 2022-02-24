@@ -181,6 +181,7 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
    transferTokenToVault(workEntity.principalAmount) accrue(workEntity.principalAmount)
   {
     Position storage pos;
+    // If id is 0, create a new position.
     if (id == 0) {
       id = nextPositionID++;
       pos = positions[id];
@@ -191,32 +192,44 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
       userToPositionId[msg.sender][pos.worker] = id;
       pos.owner = msg.sender;
     } else {
+      // position exists
       pos = positions[id];
+      // do the checks
       require(id < nextPositionID, "bad position id");
       require(pos.worker == workEntity.worker, "bad position worker");
       require(pos.owner == msg.sender, "not position owner");
     }
 
     require(config.isWorker(workEntity.worker), "not a worker");
+    // Two scenarios will be allowed:
+    // 1. workEntity.loan == 0 ==> user only add collateral
+    // 2. config.acceptDebt(workEntity.worker) ==> config allow to add more debt
     require(workEntity.loan == 0 || config.acceptDebt(workEntity.worker), "worker not accept more debt");
     beforeLoan = positionToLoan[id];
+    // total debt = _removeDebt(id)(current loan + interest) + add new added loan
     uint256 debt = _removeDebt(id).add(workEntity.loan);
+    // only loan/borrows, do not include interest
     afterLoan = beforeLoan.add(workEntity.loan);
 
     uint256 tokenReceivedFromWorker;
     {
+      // new added principalAmount
       if (workEntity.principalAmount > 0) {
         PositionRecord storage record;
         record = userToPositionRecord[msg.sender][pos.worker];
         record.deposit = record.deposit.add(workEntity.principalAmount);
       }
+      // new added loan, borrow from lending pool
       if (workEntity.loan > 0) {
         IFToken(ftoken).borrowInternalForLeverage(pos.worker, workEntity.loan);
       }
+      // total postion token amount(in base token)
       uint256 tokenAmountToWorker = workEntity.principalAmount.add(workEntity.loan);
       require(tokenAmountToWorker <= SafeToken.myBalance(token), "insufficient funds in the vault");
       uint256 tokenAmountBeforeSend = SafeMathLib.sub(SafeToken.myBalance(token), tokenAmountToWorker, "tokenAmountBeforeSend");
+      // send to worker
       SafeToken.safeTransfer(token, workEntity.worker, tokenAmountToWorker);
+      // let worker do the work
       IWorker(workEntity.worker).workWithData(id, msg.sender, debt, data, swapData);
       tokenReceivedFromWorker = SafeMathLib.sub(SafeToken.myBalance(token), tokenAmountBeforeSend, "tokenReceivedFromWorker");
     }
@@ -236,7 +249,9 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
       require(debt >= config.minDebtSize(), "too small debt size");
       uint256 health = IWorker(workEntity.worker).health(id);
       uint256 workFactor = config.workFactor(workEntity.worker, debt);
+      // remaining postion should be healthy
       require(health.mul(workFactor) >= debt.mul(10000), "positoin < debt");
+      // otherwise add debt normally
       _addDebt(id, debt);
     }
 
@@ -275,13 +290,14 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
     afterLoan = 0;
   }
 
-  /// @dev Kill the given to the position. Liquidate it immediately if killFactor condition is met.
-  /// @param id The position ID to be killed.
+  /// @dev Liquidate the given position if killFactor condition is met.
+  /// @param id The position ID to be liquidated.
   /// @param swapData Swap token data in the dex protocol.
   function kill(uint256 id, bytes calldata swapData) external accrue(0) nonReentrant {
     Position storage pos = positions[id];
     require(pos.debtShare > 0, "kill:: no debt");
 
+    // debt includes interest = loan + interest
     uint256 debt = _removeDebt(id);
     uint256 health = IWorker(pos.worker).health(id);
     uint256 killFactor = config.killFactor(pos.worker, debt);
@@ -323,9 +339,11 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
 
     uint256 lessDebt = Math.min(debt, back);
     debt = SafeMathLib.sub(debt, lessDebt, "debt");
+    // record remaining debt
     if (debt > 0) {
       _addDebt(id, debt);
     }
+    // send back rest of token to user after liquidation
     uint256 left = rest > debt ? rest - debt : 0;
     if (left > 0) {
       if (token == config.getWrappedNativeAddr()) {
@@ -337,6 +355,7 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
       }
     }
 
+    // 100% postion liquidated, reset values
     if (IWorker(pos.worker).getShares(pos.id) == 0) {
       userToPositionRecord[msg.sender][pos.worker].deposit = 0;
       userToPositionRecord[msg.sender][pos.worker].withdraw = 0;

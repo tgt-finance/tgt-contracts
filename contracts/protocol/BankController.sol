@@ -555,6 +555,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         uint256 collateral;
     }
 
+    // How much user can borrow for now, will aggregate all collaterals with collateralAbility multiplied
     function getUserLiquidity(
         address account,
         IFToken fTokenNow,
@@ -594,7 +595,6 @@ contract BankController is Exponential, OwnableUpgradeSafe {
             );
 
             vars.borrowBalance = vars.borrowBalance.mul(fixUnit);
-            // vars.borrowBalance = vars.borrowBalance.mul(1e18).div(vars.collateralAbility);
 
             vars.sumBorrows = mulScalarTruncateAddUInt(
                 vars.oraclePrice,
@@ -612,8 +612,6 @@ contract BankController is Exponential, OwnableUpgradeSafe {
                 );
 
                 borrowAmount = borrowAmount.mul(fixUnit);
-
-                // borrowAmount = borrowAmount.mul(1e18).div(vars.collateralAbility);
 
                 // borrowing
                 vars.sumBorrows = mulScalarTruncateAddUInt(
