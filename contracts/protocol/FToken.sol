@@ -290,10 +290,10 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
     }
 
     function deposit(uint256 amount) external payable whenUnpaused nonReentrant {
+        accrueInterest();
         // first transfer, then check
         transferIn(amount);
         // finally do actions
-        accrueInterest();
         mintInternal(msg.sender, amount);
         this.addTotalCash(amount);
 
@@ -693,11 +693,11 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
     function repay(uint256 repayAmount)
         external payable whenUnpaused nonReentrant override
     {
+        accrueInterest();
         uint256 actualRepayAmount = repayInternal(msg.sender, repayAmount);
         // first transfer, then check
         transferIn(actualRepayAmount);
         // finally do actions
-        accrueInterest();
         this.addTotalCash(actualRepayAmount);
         // return (actualRepayAmount, flog);
     }
