@@ -170,7 +170,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
     }
 
     function transferIn(uint256 amount)
-        internal onlyComponent payable override
+        internal onlyComponent
     {
 	    require(controller.marketsContains(msg.sender), "FToken: !marketsContains");
         address _underlying = underlying;
@@ -292,7 +292,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
 
     function deposit(uint256 amount) external payable whenUnpaused nonReentrant {
         // first transfer, then check
-        transferIn{value: msg.value}(amount);
+        transferIn(amount);
         // finally do actions
         accrueInterest();
         mintInternal(msg.sender, amount);
@@ -698,7 +698,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
     {
         uint256 actualRepayAmount = repayInternal(msg.sender, repayAmount);
         // first transfer, then check
-        transferIn{value: msg.value}(actualRepayAmount);
+        transferIn(actualRepayAmount);
         // finally do actions
         accrueInterest();
         this.addTotalCash(actualRepayAmount);
@@ -759,7 +759,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         }
 
         // first transfer, then check
-        transferIn{value: msg.value}(tmp.repayAmount);
+        transferIn(tmp.repayAmount);
 
         // finally do actions
         this.addTotalCash(tmp.repayAmount);
@@ -796,7 +796,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
 
         _liquidateBorrow(msg.sender, borrower, repayAmount, fTokenCollateral);
 
-        transferIn{value: msg.value}(repayAmount);
+        transferIn(repayAmount);
 
         this.addTotalCash(repayAmount);
     }
@@ -916,7 +916,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         accrueInterest();
 
         require(accrualBlockNumber == getBlockNumber(), "Blocknumber fails");
-        transferIn{value: msg.value}(_addAmount);
+        transferIn(_addAmount);
         totalReserves = SafeMathLib.add(totalReserves, _addAmount);
     }
 
