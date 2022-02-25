@@ -41,6 +41,7 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
   uint256 public vaultDebtShare;
   uint256 public vaultDebtVal;
 
+  uint256 private constant PRECISION = 10000;
   uint256 public securityFactor;
   uint256 public reserveFactor;
 
@@ -101,7 +102,7 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
     config = _config;
   }
 
-  /// @dev security Part in 10000 eg: 1000/10000, reserve decimals is 1e18 eg: 1e16
+  /// @dev security Part in PRECISION eg: 1000/PRECISION, reserve decimals is 1e18 eg: 1e16
   function updateSecurityAndReserveFactor(uint256 _securityFactor, uint256 _reserveFactor) external onlyOwner {
     securityFactor = _securityFactor;
     reserveFactor = _reserveFactor;
@@ -119,8 +120,8 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
     config = IVaultConfig(_config);
     ftoken = _ftoken;
 
-    securityFactor = 1000;
-    reserveFactor = 1e16;
+    securityFactor = 1000;  // 10%
+    reserveFactor = 1e16; // 1%
 
     nextPositionID = 1;
     lastAccrueTime = now;
@@ -253,7 +254,7 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
       uint256 health = IWorker(workEntity.worker).health(id);
       uint256 workFactor = config.workFactor(workEntity.worker, debt);
       // remaining postion should be healthy
-      require(health.mul(workFactor) >= debt.mul(10000), "positoin < debt");
+      require(health.mul(workFactor) >= debt.mul(PRECISION), "positoin < debt");
       // otherwise add debt normally
       _addDebt(id, debt);
     }
@@ -307,7 +308,7 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
     uint256 health = IWorker(pos.worker).health(id);
     uint256 killFactor = config.killFactor(pos.worker, debt);
 
-    require(health.mul(killFactor) < debt.mul(10000), "kill:: postion > debt");
+    require(health.mul(killFactor) < debt.mul(PRECISION), "kill:: postion > debt");
 
     uint256 back;
     {
@@ -316,9 +317,9 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
       back = SafeToken.myBalance(token).sub(beforeToken);
     }
     // 5% of the liquidation value will become Clearance Fees
-    uint256 clearanceFees = back.mul(config.getKillBps()).div(10000);
+    uint256 clearanceFees = back.mul(config.getKillBps()).div(PRECISION);
     // 10% of clearanceFees for security fund
-    uint256 securityFund = clearanceFees.mul(securityFactor).div(10000);
+    uint256 securityFund = clearanceFees.mul(securityFactor).div(PRECISION);
     // remaining clearanceFees to liquidator reward
     uint256 prize = clearanceFees.sub(securityFund);
 
