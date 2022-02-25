@@ -126,17 +126,15 @@ contract UniswapWorker is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe, IWorke
   /// @dev Return the amount of BaseToken to receive if we are to liquidate the given position.
   /// @param id The position ID to perform health check.
   function health(uint256 id) external override view returns (uint256) {
-    uint256 positions = shares[id];
+    uint256 farmTokenShares = shares[id];
+    uint256 baseTokenDecimal = IERC20(baseToken).decimals();
+    uint256 farmTokenDecimal = IERC20(farmToken).decimals();
+    (uint256 baseTokenPrice, uint256 farmTokenPrice,,) = getPrices();
 
-    uint256 token0Decimal = IERC20(baseToken).decimals();
-    uint256 token1Decimal = IERC20(farmToken).decimals();
-
-    (uint256 price0,) = getBaseTokenPrice();
-    // farmToken -> baseToken  price0 decimal equal 1e18
-    uint256 baseTokenAmount = SafeMathLib.mul(price0, positions);
-    uint256 tmpAmount = SafeMathLib.mul(baseTokenAmount, 10**token0Decimal);
-    uint256 receiveBaseAmount = SafeMathLib.div(SafeMathLib.div(tmpAmount, 10**token1Decimal), 1e18);
-    return receiveBaseAmount;
+    // baseTokenAmount = farmTokenShares * farmTokenPrice * baseTokenDecimal / baseTokenPrice / farmTokenDecimal
+    uint256 farmTokenValue = SafeMathLib.mul(farmTokenPrice, farmTokenShares);
+    uint256 farmTokenValuePrecision = SafeMathLib.mul(baseTokenDecimal, farmTokenValue);
+    return SafeMathLib.div(SafeMathLib.div(farmTokenValuePrecision, baseTokenPrice), farmTokenDecimal);
   }
 
   /// @dev Liquidate the given position by converting it to BaseToken and return back to caller.
@@ -213,17 +211,17 @@ contract UniswapWorker is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe, IWorke
     }
   }
 
-  // get baseToken price against farmToken from BAND oracle
-  function getBaseTokenPrice() public view returns (uint256, uint256) {
-    string memory token0Symbol = baseToken == usd ? "USD" : IERC20(baseToken).symbol();
-    string memory token1Symbol = farmToken == usd ? "USD" : IERC20(farmToken).symbol();
-    if (farmToken == usd) {
-      IStdReference.ReferenceData memory data = ref.getReferenceData(token0Symbol, token1Symbol);
-      return (data.rate, block.timestamp);
-    } else {
-      IStdReference.ReferenceData memory data = ref.getReferenceData(token1Symbol, token0Symbol);
-      return (SafeMathLib.div(1e36, data.rate), block.timestamp);
-    }
+  // get baseToken and farmToken price against USD from BAND oracle
+  function getPrices() public view returns (uint256, uint256, uint256, uint256) {
+    string memory baseTokenSymbol = baseToken == usd ? "USD" : IERC20(baseToken).symbol();
+    string memory farmTokenSymbol = farmToken == usd ? "USD" : IERC20(farmToken).symbol();
+
+    IStdReference.ReferenceData memory baseTokenPriceData = ref.getReferenceData(baseTokenSymbol, 'USD');
+    IStdReference.ReferenceData memory farmTokenPriceData = ref.getReferenceData(farmTokenSymbol, 'USD');
+    // TODO: check if the price is valid
+    // require(block.timestamp - baseTokenPriceData.lastUpdatedQuote > 3600, "baseToken price not updated");
+    // require(block.timestamp - farmTokenPriceData.lastUpdatedQuote > 3600, "farmToken price not updated");
+    return (baseTokenPriceData.rate, farmTokenPriceData.rate, baseTokenPriceData.lastUpdatedQuote, farmTokenPriceData.lastUpdatedQuote);
   }
 
   function getShares(uint256 id) external override view returns (uint256) {
