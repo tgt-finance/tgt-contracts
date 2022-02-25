@@ -349,7 +349,6 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
         controller.borrowCheckForLeverage(
             borrower,
             underlying,
-            address(this),
             mulScalarTruncate(borrowAmount, borrowSafeRatio)
         );
 

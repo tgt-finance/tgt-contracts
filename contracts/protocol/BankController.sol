@@ -392,7 +392,6 @@ contract BankController is Exponential, OwnableUpgradeSafe {
     function borrowCheckForLeverage(
         address account,
         address underlying,
-        address fToken,
         uint256 borrowAmount
     ) external {
         require(underlying == IFToken(msg.sender).underlying(), "invalid underlying token");
