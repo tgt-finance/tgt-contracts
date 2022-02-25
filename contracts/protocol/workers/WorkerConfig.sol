@@ -41,26 +41,18 @@ contract WorkerConfig is OwnableUpgradeSafe, IWorkerConfig {
     }
   }
 
-  /// @dev Return whether the given worker is stable, presumably not under manipulation.
-  function isStable(address worker) public pure returns (bool) {
-    return true;
-  }
-
   /// @dev Return whether the given worker accepts more debt.
   function acceptDebt(address worker) external override view returns (bool) {
-    require(isStable(worker), "WorkerConfig::acceptDebt:: !stable");
     return workers[worker].acceptDebt;
   }
 
   /// @dev Return the work factor for the worker + BaseToken debt, using 1e4 as denom.
   function workFactor(address worker, uint256 /* debt */) external override view returns (uint256) {
-    require(isStable(worker), "WorkerConfig::workFactor:: !stable");
     return uint256(workers[worker].workFactor);
   }
 
   /// @dev Return the kill factor for the worker + BaseToken debt, using 1e4 as denom.
   function killFactor(address worker, uint256 /* debt */) external override view returns (uint256) {
-    require(isStable(worker), "WorkerConfig::killFactor:: !stable");
     return uint256(workers[worker].killFactor);
   }
 }
