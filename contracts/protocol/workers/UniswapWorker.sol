@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+
+// This contract intends to use uniswap v2 and Band protocol work with vault and strategies
 pragma solidity 0.6.6;
 pragma experimental ABIEncoderV2;
 
@@ -129,7 +131,7 @@ contract UniswapWorker is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe, IWorke
     uint256 token0Decimal = IERC20(baseToken).decimals();
     uint256 token1Decimal = IERC20(farmToken).decimals();
 
-    uint256 price0 = getLastPrice(farmToken, baseToken);
+    (uint256 price0,) = getBaseTokenPrice();
     // farmToken -> baseToken  price0 decimal equal 1e18
     uint256 baseTokenAmount = SafeMathLib.mul(price0, positions);
     uint256 tmpAmount = SafeMathLib.mul(baseTokenAmount, 10**token0Decimal);
@@ -211,7 +213,8 @@ contract UniswapWorker is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe, IWorke
     }
   }
 
-  function getOraclePrice(address token0, address token1) public view returns (uint256, uint256) {
+  // get baseToken price against farmToken from BAND oracle
+  function getBaseTokenPrice() public view returns (uint256, uint256) {
     string memory token0Symbol = baseToken == usd ? "USD" : IERC20(baseToken).symbol();
     string memory token1Symbol = farmToken == usd ? "USD" : IERC20(farmToken).symbol();
     if (farmToken == usd) {
@@ -221,18 +224,6 @@ contract UniswapWorker is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe, IWorke
       IStdReference.ReferenceData memory data = ref.getReferenceData(token1Symbol, token0Symbol);
       return (SafeMathLib.div(1e36, data.rate), block.timestamp);
     }
-  }
-
-  function getLastPrice(address token0, address token1) public view returns (uint256) {
-      if (farmToken == token0) {
-        (uint price0,) = getOraclePrice(token0, usd);
-        (uint price1,) = getOraclePrice(usd, token1);
-        return SafeMathLib.div(SafeMathLib.mul(price0, price1), 1e18);
-      } else {
-        (uint price0,) = getOraclePrice(usd, token0);
-        (uint price1,) = getOraclePrice(token1, usd);
-        return SafeMathLib.div(SafeMathLib.mul(price0, price1), 1e18);
-      }
   }
 
   function getShares(uint256 id) external override view returns (uint256) {
