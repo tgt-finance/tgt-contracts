@@ -33,11 +33,6 @@ contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgrad
 
   IVaultConfig public config;
 
-  /// @dev Flags for manage execution scope
-  uint256 private constant _NOT_ENTERED = 1;
-  uint256 private constant _ENTERED = 2;
-  uint256 private constant _NO_ID = uint(-1);
-  address private constant _NO_ADDRESS = address(1);
   uint256 private beforeLoan;
   uint256 private afterLoan;
 
