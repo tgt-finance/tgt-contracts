@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
 
 import "./interfaces/IWorker.sol";
-import "./interfaces/IVault.sol";
 import "../utils/SafeToken.sol";
 import "./WNativeRelayer.sol";
 import "./library/SafeMathLib.sol";
@@ -21,7 +20,7 @@ interface IFToken {
   function addReservesForLeverage(uint addAmount) external;
 }
 
-contract Vault is IVault, Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
+contract Vault is Exponential, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
 
   using SafeToken for address;
   using SafeMathLib for uint256;
