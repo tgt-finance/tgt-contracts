@@ -8,12 +8,13 @@ import "./Exponential.sol";
 import "./interfaces/lending/IFToken.sol";
 import "./interfaces/lending/IOracle.sol";
 import "./interfaces/lending/IERC20.sol";
+import "./interfaces/lending/IBankController.sol";
 import "./library/SafeERC20.sol";
 import "./library/SafeMathLib.sol";
 import "./library/Address.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 
-contract BankController is Exponential, OwnableUpgradeSafe {
+contract BankController is IBankController, Exponential, OwnableUpgradeSafe {
     using SafeERC20 for IERC20Interface;
     using SafeMathLib for uint256;
     using AddressLib for address;
@@ -49,7 +50,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
 
     IOracle public oracle;
 
-    address public mulsig;
+    address public override mulsig;
 
     modifier auth {
         require(
@@ -58,16 +59,16 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         _;
     }
 
-    function marketsContains(address fToken) public view returns (bool) {
+    function marketsContains(address fToken) public view override returns (bool) {
         return allFtokenMarkets[fToken];
     }
 
-    function vaultContains(address vault) public view returns (bool) {
+    function vaultContains(address vault) public view override returns (bool) {
         return allVaults[vault];
     }
 
     address public pauser;
-    bool public paused;
+    bool public override paused;
 
     modifier whenUnpaused {
         require(!paused, "System paused");
@@ -104,7 +105,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
 
     address public rewardPool;
 
-    uint256 public transferEthGasCost;
+    uint256 public override transferEthGasCost;
 
     // @notice Borrow caps enforced by borrowAllowed for each token address. Defaults to zero which corresponds to unlimited borrowing.
     mapping(address => uint) public borrowCaps;
@@ -134,8 +135,8 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         entered = false;
     }
 
-    uint256 public flashloanFeeBips; // Nine out of ten thousand，9 for 0.0009
-    address public flashloanVault;// flash loan vault(recv flash loan fee);
+    uint256 public override flashloanFeeBips; // Nine out of ten thousand，9 for 0.0009
+    address public override flashloanVault;// flash loan vault(recv flash loan fee);
     event SetFlashloanParams(address indexed sender, uint256 bips, address flashloanVault);
 
     // fToken => supported or not, using mapping to save gas instead of iterator array
@@ -244,7 +245,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         emit AdministrationClaimed();
     }
 
-    function getFTokeAddress(address underlying) public view returns (address) {
+    function getFTokeAddress(address underlying) public view override returns (address) {
         return markets[underlying].fTokenAddress;
     }
 
@@ -286,7 +287,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         address src,
         address dst,
         uint256 transferTokens
-    ) external onlyFToken(msg.sender) {
+    ) external override onlyFToken(msg.sender) {
         withdrawCheck(fToken, src, transferTokens);
         userEnterMarket(IFToken(fToken), dst);
     }
@@ -295,7 +296,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         address fToken,
         address withdrawer,
         uint256 withdrawTokens
-    ) public view returns (uint256) {
+    ) public view override returns (uint256) {
         address underlying = IFToken(fToken).underlying();
         require(
             markets[underlying].isValid,
@@ -320,19 +321,19 @@ contract BankController is Exponential, OwnableUpgradeSafe {
     }
 
     // Get the balance of the actual unerderlying asset
-    function getCashPrior(address underlying) public view returns (uint256) {
+    function getCashPrior(address underlying) public view override returns (uint256) {
         IFToken fToken = IFToken(getFTokeAddress(underlying));
         return fToken.totalCash();
     }
 
     // Get the balance of the underlying assets to be updated (pre-judgment)
     function getCashAfter(address underlying, uint256 transferInAmount)
-        external view returns (uint256)
+        external view override returns (uint256)
     {
         return getCashPrior(underlying).add(transferInAmount);
     }
 
-    function mintCheck(address underlying, address minter, uint256 amount) external {
+    function mintCheck(address underlying, address minter, uint256 amount) external override {
         require(minter != address(0), "minter cannot be 0");
         require(marketsContains(msg.sender), "MintCheck fails");
         require(markets[underlying].isValid, "Market not valid");
@@ -359,7 +360,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         address underlying,
         address fToken,
         uint256 borrowAmount
-    ) external {
+    ) external override {
         require(account != address(0), "account cannot be 0");
         require(underlying == IFToken(msg.sender).underlying(), "invalid underlying token");
         require(markets[underlying].isValid, "Market not valid");
@@ -393,7 +394,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         address account,
         address underlying,
         uint256 borrowAmount
-    ) external {
+    ) external override {
         require(underlying == IFToken(msg.sender).underlying(), "invalid underlying token");
         require(markets[underlying].isValid, "Market not valid");
         require(!tokenConfigs[underlying].borrowDisabled, "borrow disabled");
@@ -413,7 +414,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         }
     }
 
-    function repayCheck(address underlying) external view {
+    function repayCheck(address underlying) external view override {
         require(markets[underlying].isValid, "Market not valid");
         require(!tokenConfigs[underlying].repayDisabled, "repay disabled");
     }
@@ -532,7 +533,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
 
     function seizeCheck(address fTokenCollateral, address fTokenBorrowed)
         external
-        view
+        view override
     {
         require(!paused, "system paused!");
         require(
@@ -637,7 +638,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         uint256 liquidityPlusThreshold;
     }
 
-    function getHealthFactor(address account) public view returns (
+    function getHealthFactor(address account) public view override returns (
         uint256 healthFactor
     ) {
         IFToken[] memory assets = accountAssets[account];
@@ -693,7 +694,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
                 : uint256(IERC20Interface(token).decimals());
     }
 
-    function isFTokenValid(address fToken) external view returns (bool) {
+    function isFTokenValid(address fToken) external view override returns (bool) {
         return markets[IFToken(fToken).underlying()].isValid;
     }
 
@@ -703,7 +704,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         address borrower,
         address liquidator,
         uint256 repayAmount
-    ) external onlyFToken(msg.sender) {
+    ) external override onlyFToken(msg.sender) {
         address underlyingBorrowed = IFToken(fTokenBorrowed).underlying();
         address underlyingCollateral = IFToken(fTokenCollateral).underlying();
         require(!tokenConfigs[underlyingBorrowed].liquidateBorrowDisabled, "liquidateBorrow: liquidate borrow disabled");
@@ -735,7 +736,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         address fTokenBorrowed,
         address fTokenCollateral,
         uint256 actualRepayAmount
-    ) external view returns (uint256) {
+    ) external view override returns (uint256) {
         (uint256 borrowPrice, bool borrowValid) = fetchAssetPrice(
             IFToken(fTokenBorrowed).underlying()
         );
@@ -784,7 +785,7 @@ contract BankController is Exponential, OwnableUpgradeSafe {
         address underlying,
         address payable account,
         uint256 reduceAmount
-    ) public onlyMulSig {
+    ) public override onlyMulSig {
         IFToken fToken = IFToken(getFTokeAddress(underlying));
         fToken._reduceReserves(reduceAmount);
         fToken.transferToUser(underlying, account, reduceAmount);

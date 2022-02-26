@@ -28,7 +28,7 @@ interface IBankController {
         uint256 borrowAmount
     ) external;
 
-    function repayCheck(address underlying) external;
+    function repayCheck(address underlying) external view;
 
     function liquidateBorrowCheck(
         address fTokenBorrowed,
@@ -60,40 +60,16 @@ interface IBankController {
     function marketsContains(address fToken) external view returns (bool);
     function vaultContains(address vault) external view returns (bool);
 
-    function seizeCheck(address cTokenCollateral, address cTokenBorrowed)
-        external;
+    function seizeCheck(address cTokenCollateral, address cTokenBorrowed) external view;
 
     function mintCheck(address underlying, address minter, uint256 amount) external;
 
-    function addReserves(address underlying, uint256 addAmount)
-        external
-        payable;
 
     function reduceReserves(
         address underlying,
         address payable account,
         uint256 reduceAmount
     ) external;
-
-    function calcMaxBorrowAmount(address user, address token)
-        external
-        view
-        returns (uint256);
-
-    function calcMaxWithdrawAmount(address user, address token)
-        external
-        view
-        returns (uint256);
-
-    function calcMaxCashOutAmount(address user, address token)
-        external
-        view
-        returns (uint256);
-
-    function calcMaxBorrowAmountWithRatio(address user, address token)
-        external
-        view
-        returns (uint256);
 
     function isFTokenValid(address fToken) external view returns (bool);
     function flashloanFeeBips() external view returns (uint256);
