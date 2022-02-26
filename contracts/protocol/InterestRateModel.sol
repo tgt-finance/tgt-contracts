@@ -10,11 +10,11 @@ contract InterestRateModel is IInterestRateModel, OwnableUpgradeSafe {
 
     uint256 public blocksPerYear;
     uint256 public secondsPerBlock;
-    uint256 public SECONDS_PER_YEAR;
+    uint256 public constant SECONDS_PER_YEAR = 365 days;
 
-    uint256 public OPTICAL_USAGE_RATE;
-    uint256 public MAX_USAGE_RATE;
-    uint256 public BASIC_INTEREST;
+    uint256 public constant OPTICAL_USAGE_RATE = 85e18;
+    uint256 public constant MAX_USAGE_RATE = 100e18;
+    uint256 public constant BASIC_INTEREST = 10e16;
 
     uint256 public interestSlope1;
     uint256 public interestSlope2;
@@ -26,14 +26,10 @@ contract InterestRateModel is IInterestRateModel, OwnableUpgradeSafe {
     ) public initializer {
         OwnableUpgradeSafe.__Ownable_init();
 
-        SECONDS_PER_YEAR = 365 days;
         secondsPerBlock = _secondsPerBlock;
         blocksPerYear = SECONDS_PER_YEAR.div(_secondsPerBlock);
         interestSlope1 = _interestSlope1;
         interestSlope2 = _interestSlope2;
-        OPTICAL_USAGE_RATE = 85e18;
-        MAX_USAGE_RATE = 100e18;
-        BASIC_INTEREST = 10e16;
     }
 
     function utilizationRate(
