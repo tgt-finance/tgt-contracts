@@ -12,7 +12,6 @@ import "./interfaces/lending/IBankController.sol";
 import "./interfaces/lending/IERC20.sol";
 import "./interfaces/lending/IFToken.sol";
 import "./interfaces/IVaultConfig.sol";
-import "./interfaces/lending/IFlashLoanReceiver.sol";
 
 struct PoolUser {
     // user staking amount
