@@ -171,7 +171,7 @@ contract FToken is IFToken, Exponential, OwnableUpgradeSafe {
     function transferIn(uint256 amount)
         internal
     {
-	    require(controller.marketsContains(msg.sender), "FToken: !marketsContains");
+	    require(controller.marketsContains(address(this)), "FToken: !marketsContains");
         address _underlying = underlying;
         // erc20 => transferFrom
         if (_underlying != EthAddressLib.ethAddress()) {
