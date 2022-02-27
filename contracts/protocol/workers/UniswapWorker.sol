@@ -133,8 +133,8 @@ contract UniswapWorker is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe, IWorke
 
     // baseTokenAmount = farmTokenShares * farmTokenPrice * baseTokenDecimal / baseTokenPrice / farmTokenDecimal
     uint256 farmTokenValue = SafeMathLib.mul(farmTokenPrice, farmTokenShares);
-    uint256 farmTokenValuePrecision = SafeMathLib.mul(baseTokenDecimal, farmTokenValue);
-    return SafeMathLib.div(SafeMathLib.div(farmTokenValuePrecision, baseTokenPrice), farmTokenDecimal);
+    uint256 farmTokenValuePrecision = SafeMathLib.mul(10**baseTokenDecimal, farmTokenValue);
+    return SafeMathLib.div(SafeMathLib.div(farmTokenValuePrecision, baseTokenPrice), 10**farmTokenDecimal);
   }
 
   /// @dev Liquidate the given position by converting it to BaseToken and return back to caller.
